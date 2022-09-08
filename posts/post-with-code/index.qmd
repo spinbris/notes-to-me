@@ -1,0 +1,306 @@
+---
+title: "Titanic EDA"
+author: "Stephen Parton"
+date: "2022-09-01"
+categories: [code, analysis,titanic]
+
+format: 
+  html: 
+    code-fold: true
+---
+
+![](thumbnail.jpg){width="215"}
+
+## Summary
+
+This is just a first test with code in a blog using the new Quarto framework! Guess what I am using..
+
+```{r}
+#| context: setup
+#| include: false
+
+
+library(tidyverse)
+library(janitor)
+library(skimr)
+library(DataExplorer)
+
+
+library(tidymodels)
+tidymodels_prefer()
+
+```
+
+## Load Some Kaggle Data
+
+Not the...? Yes, the Titanic again....
+
+```{r}
+#| warning: false
+#| echo: true
+#| message: false
+
+train <- read_csv("data_raw/train.csv",show_col_types = FALSE) %>% clean_names() %>% mutate(train_test = "train")
+test <- read_csv("data_raw/test.csv",show_col_types = FALSE) %>% clean_names() %>% 
+  mutate(train_test = "test")
+all <- train %>% bind_rows(test)
+
+# colnames(data)
+# cwd()
+
+```
+
+## Some Initial EDA
+
+A quick look.
+
+```{r}
+train %>% skim() 
+```
+
+## Some Initial Wrangling
+
+```{r}
+all_proc <- all %>% 
+  mutate(title = str_extract(name,"(\\w)([a-z]+)(\\.)")) %>% 
+  mutate(pax_type = case_when(
+    title %in% c("Miss.","Ms.","Mlle.")         ~ "F_unmarried",
+    title %in% c("Mme.","Mrs.")                 ~ "F_married",
+    title %in% c("Countess.","Lady.","Dona.")   ~ "F_titled",
+    title %in% c("Capt.","Col.","Major.")       ~ "Military",
+    title %in% c("Dr.","Rev.")                  ~ "M_Professional",
+    title %in% c("Don.","Jonkheer.","Sir.")     ~ "M_titled",
+    TRUE ~ title
+  ),
+  surname        = str_extract(name,"(\\w+)(\\,)"),
+  survival       = ifelse(survived==0,"No","Yes"),
+  ticket_preface = str_extract(ticket,"([:graph:]+)(\\s)"),
+  ticket_preface = ifelse(is.na(ticket_preface),"none",ticket_preface),
+  cabin_preface  = ifelse(is.na(cabin),"nk",
+                    substr(cabin,1,1)),
+  embarked       = ifelse(is.na(embarked),"S",embarked)
+  ) %>% 
+  group_by(pax_type,pclass) %>% 
+  mutate(age     = ifelse(is.na(age),median(age,na.rm = T), age)) %>% 
+  ungroup() %>% 
+  add_count(ticket,name = "ticket_group") %>% 
+  mutate(ticket_group = case_when(
+    ticket_group == 1 ~ "single",
+    ticket_group == 2 ~ "couple",
+    TRUE              ~ "group"
+  ),
+    family_group = as.numeric(sib_sp)+as.numeric(parch)+1
+  ) %>% 
+  mutate(family_group = factor(
+    case_when(
+        family_group < 2  ~ "single",
+        family_group < 3  ~ "couple",
+        TRUE              ~ "family"
+        ),
+    ordered = TRUE)
+  ) %>% 
+  mutate(age_group = factor(case_when(
+    age < 13      ~ "child",
+    age < 20      ~ "teen",
+    age < 30      ~ "20s",
+    age < 40      ~ "30s",
+    age < 50      ~ "40s",
+    age < 60      ~ "50s",
+    TRUE          ~ "60+"
+    
+  ),
+  ordered = TRUE)
+  ) %>% 
+  mutate(across(where(is.character),as_factor)) %>% 
+  mutate(pclass = factor(pclass,levels = c("1","2","3")),
+         survived = factor(survived)
+         ) %>% 
+select(-c(title,ticket_preface))
+  
+#all_proc %>% glimpse() 
+
+```
+
+## A bit more EDA
+
+```{r}
+all_proc %>% 
+  select(-c(name,ticket,cabin,surname,train_test)) %>% 
+  DataExplorer::plot_bar()
+```
+
+```{r}
+all_proc %>% DataExplorer::plot_histogram(ggtheme = theme_light() )
+```
+
+## Eyeballing Survival Graphs on Training Data
+
+```{r, fig.height=15}
+#| warning: false
+
+no_f <- all_proc %>%
+  filter(train_test == "train") %>% 
+  select(passenger_id,pclass,sex,embarked,pax_type,ticket_group,family_group,age_group,cabin_preface,survival) %>% 
+  droplevels() %>%
+  mutate(across(where(is.factor),~ factor(.x,ordered = FALSE))) %>%
+  pivot_longer(cols = c(pclass:cabin_preface)) 
+
+
+g_l <- no_f %>% 
+  split(.$name) %>% 
+  map(~ ggplot(.,aes(y=value,fill=survival)) +
+                geom_bar() +
+              ggtitle(.$name) +
+        theme_bw() +
+        labs(x=NULL,y=NULL)+
+        scale_fill_viridis_d(option = "cividis")
+      
+            ) 
+
+library(patchwork)
+wrap_plots(g_l, ncol = 2)
+
+```
+
+## Split Data back to Train/Test/Validation
+
+```{r}
+
+train_proc_adj_tbl <- all_proc %>% 
+  filter(train_test =="train") %>% 
+  select(-c(survival))
+  
+train_split <- initial_split(train_proc_adj_tbl,strata = survived)
+
+```
+
+## Recipe-Base
+
+```{r}
+recipe_base <- 
+  recipe(survived ~ ., data = training(train_split)) %>% 
+  update_role(passenger_id, name,surname,ticket,cabin,new_role = "ID") %>%
+  step_impute_knn(all_numeric_predictors()) %>% 
+  step_dummy(all_nominal_predictors()) %>%
+  step_factor2string(all_nominal_predictors()) %>% 
+  step_zv(all_predictors()) %>% 
+  step_pca()
+recipe_base
+
+
+
+
+```
+
+## Save Files
+
+```{r}
+
+write_rds(all_proc,"artifacts/all_proc.rds")
+write_rds(train_split,"artifacts/train_split.rds")
+write_rds(recipe_base,"artifacts/recipe_base.rds")
+
+all_proc <- read_rds("artifacts/all_proc.rds")
+train_split <- read_rds("artifacts/train_split.rds")
+recipe_base <- read_rds("artifacts/recipe_base.rds")
+
+```
+
+## Models
+
+### Logistic Regression
+
+#### LR Model Spec
+
+```{r}
+lr_spec <-  
+  logistic_reg() %>% 
+  set_engine("glm")
+
+lr_spec
+
+
+```
+
+#### LR Workflow
+
+```{r}
+lr_wflow <- 
+  workflow() %>% 
+  add_model(lr_spec) %>% 
+  add_recipe(recipe_base)
+
+lr_wflow
+
+```
+
+#### LR Fit Model
+
+```{r}
+
+lr_fit <- 
+  lr_wflow %>% 
+  last_fit(train_split)
+
+#lr_fit
+
+lr_final_metrics <- lr_fit %>% collect_metrics()
+lr_final_metrics 
+#show_notes(.Last.tune.result)
+```
+
+#### LR Predict
+
+```{r}
+
+
+lr_test_predictions <- lr_fit %>% collect_predictions()
+lr_test_predictions
+```
+
+#### LR Performance on validation set
+
+##### AUC Curve 
+
+```{r}
+
+
+
+lr_test_predictions %>% 
+  roc_curve(truth = survived,.pred_1,event_level="second") %>% 
+  autoplot()
+
+```
+
+##### Confusion Matrix
+
+```{r}
+
+lr_test_predictions %>% 
+  conf_mat(survived,.pred_class) %>% 
+  autoplot(type = "heatmap")
+
+```
+
+#### LR Resampling
+
+```{r}
+#| message: false
+#| warning: false
+
+folds <- vfold_cv(training(train_split), strata = survived, v=10)
+#folds
+
+control <- control_resamples(save_pred = TRUE)
+
+lr_fit_cv <- 
+  lr_wflow %>% 
+  fit_resamples(folds, control = control)
+
+#show_best(lr_fit_cv,metric= "accuracy")
+
+#lr_fit_cv
+lr_metrics_resample <- collect_metrics(lr_fit_cv)
+lr_metrics_resample
+
+```

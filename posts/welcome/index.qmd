@@ -1,0 +1,24 @@
+---
+title: "What is this for?"
+author: "Stephen Parton"
+date: "2022-08-29"
+categories: [news]
+---
+
+![](thumbnail.jpg)
+
+This is my public notebook created in Quarto after seeing all the recent webinars from the amazing people at RStudio (eg JJ Allaire, Tom Mock and Isabella Velasquez)
+
+It is intended that it will contain public 'Notes to Myself' on some of my interests which professionally are likely to centre on things like:
+
+-   R Programming
+
+-   Python Programming
+
+-   ML analytics in R and Python
+
+-   Finance and data analytics (my day job)
+
+-   Other analytics and notes collected from wherever
+
+Not sure that it will be much use to anyone else, but feel free to wander through.

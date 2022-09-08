@@ -1,0 +1,114 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Notes Index",
+    "section": "",
+    "text": "code\n\n\nanalysis\n\n\ntitanic\n\n\n\n\n\n\n\n\n\n\n\n05-09-2022\n\n\nStephen Parton\n\n\n\n\n\n\n  \n\n\n\n\n\n\n\n\n\n\ncode\n\n\nanalysis\n\n\ntitanic\n\n\n\n\n\n\n\n\n\n\n\n01-09-2022\n\n\nStephen Parton\n\n\n\n\n\n\n  \n\n\n\n\n\n\n\n\n\n\nnews\n\n\n\n\n\n\n\n\n\n\n\n29-08-2022\n\n\nStephen Parton\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this blog"
+  },
+  {
+    "objectID": "posts/model-01-logistic_regression/index.html#summary",
+    "href": "posts/model-01-logistic_regression/index.html#summary",
+    "title": "Titanic Logistic Regression",
+    "section": "Summary",
+    "text": "Summary\nThis analysis looks at the previously processed Titanic analysis, using logistic regression."
+  },
+  {
+    "objectID": "posts/model-01-logistic_regression/index.html#load-some-pre-prepared-kaggle-data",
+    "href": "posts/model-01-logistic_regression/index.html#load-some-pre-prepared-kaggle-data",
+    "title": "Titanic Logistic Regression",
+    "section": "Load Some Pre-prepared Kaggle Data",
+    "text": "Load Some Pre-prepared Kaggle Data\n\n\nCode\n#getwd()\n\nall_proc <- read_rds(\"../../posts/post-with-code/artifacts/all_proc.rds\")\ntrain_split <- read_rds(\"../../posts/post-with-code/artifacts/train_split.rds\")\nrecipe_base <- read_rds(\"../../posts/post-with-code/artifacts/recipe_base.rds\")"
+  },
+  {
+    "objectID": "posts/model-01-logistic_regression/index.html#models",
+    "href": "posts/model-01-logistic_regression/index.html#models",
+    "title": "Titanic Logistic Regression",
+    "section": "Models",
+    "text": "Models\n\nLogistic Regression- GLM\n\nLR Model Spec\n\n\nCode\nlr_spec <-  \n  logistic_reg() %>% \n  set_engine(\"glm\")\n\nlr_spec\n\n\nLogistic Regression Model Specification (classification)\n\nComputational engine: glm \n\n\n\n\nLR Workflow\n\n\nCode\nlr_wflow <- \n  workflow() %>% \n  add_model(lr_spec) %>% \n  add_recipe(recipe_base)\n\nlr_wflow\n\n\n══ Workflow ════════════════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: logistic_reg()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n5 Recipe Steps\n\n• step_impute_knn()\n• step_dummy()\n• step_factor2string()\n• step_zv()\n• step_pca()\n\n── Model ───────────────────────────────────────────────────────────────────────\nLogistic Regression Model Specification (classification)\n\nComputational engine: glm \n\n\n\n\nLR Fit Model\n\n\nCode\nlr_fit <- \n  lr_wflow %>% \n  last_fit(train_split)\n\n#lr_fit\n\nlr_final_metrics <- lr_fit %>% collect_metrics()\nlr_final_metrics \n\n\n# A tibble: 2 × 4\n  .metric  .estimator .estimate .config             \n  <chr>    <chr>          <dbl> <chr>               \n1 accuracy binary         0.835 Preprocessor1_Model1\n2 roc_auc  binary         0.867 Preprocessor1_Model1\n\n\nCode\n#show_notes(.Last.tune.result)\n\n\n\n\nLR Predict\n\n\nCode\nlr_test_predictions <- lr_fit %>% collect_predictions()\nlr_test_predictions\n\n\n# A tibble: 224 × 7\n   id               .pred_0 .pred_1  .row .pred_class survived .config          \n   <chr>              <dbl>   <dbl> <int> <fct>       <fct>    <chr>            \n 1 train/test split  0.346   0.654      3 1           1        Preprocessor1_Mo…\n 2 train/test split  0.0685  0.931      4 1           1        Preprocessor1_Mo…\n 3 train/test split  0.920   0.0802     5 0           0        Preprocessor1_Mo…\n 4 train/test split  0.569   0.431     11 0           1        Preprocessor1_Mo…\n 5 train/test split  0.622   0.378     31 0           0        Preprocessor1_Mo…\n 6 train/test split  0.277   0.723     33 1           1        Preprocessor1_Mo…\n 7 train/test split  0.670   0.330     35 0           0        Preprocessor1_Mo…\n 8 train/test split  0.811   0.189     36 0           0        Preprocessor1_Mo…\n 9 train/test split  0.902   0.0975    37 0           1        Preprocessor1_Mo…\n10 train/test split  0.554   0.446     39 0           0        Preprocessor1_Mo…\n# … with 214 more rows\n\n\n\n\nLR Performance on validation set\n\nAUC Curve\n\n\nCode\nlr_test_predictions %>% \n  roc_curve(truth = survived,.pred_1,event_level=\"second\") %>% \n  autoplot()\n\n\n\n\n\n\n\nConfusion Matrix\n\n\nCode\nlr_test_predictions %>% \n  conf_mat(survived,.pred_class) %>% \n  autoplot(type = \"heatmap\")\n\n\n\n\n\n\n\n\nLR Resampling\n\n\nCode\nfolds <- vfold_cv(training(train_split), strata = survived, v=10)\n#folds\n\ncontrol <- control_resamples(save_pred = TRUE)\n\nlr_fit_cv <- \n  lr_wflow %>% \n  fit_resamples(folds, control = control)\n\n#show_best(lr_fit_cv,metric= \"accuracy\")\n\n#lr_fit_cv\nlr_metrics_resample <- collect_metrics(lr_fit_cv)\nlr_metrics_resample\n\n\n# A tibble: 2 × 6\n  .metric  .estimator  mean     n std_err .config             \n  <chr>    <chr>      <dbl> <int>   <dbl> <chr>               \n1 accuracy binary     0.811    10  0.0130 Preprocessor1_Model1\n2 roc_auc  binary     0.854    10  0.0125 Preprocessor1_Model1"
+  },
+  {
+    "objectID": "posts/post-with-code/index.html#summary",
+    "href": "posts/post-with-code/index.html#summary",
+    "title": "Titanic EDA",
+    "section": "Summary",
+    "text": "Summary\nThis is just a first test with code in a blog using the new Quarto framework! Guess what I am using.."
+  },
+  {
+    "objectID": "posts/post-with-code/index.html#load-some-kaggle-data",
+    "href": "posts/post-with-code/index.html#load-some-kaggle-data",
+    "title": "Titanic EDA",
+    "section": "Load Some Kaggle Data",
+    "text": "Load Some Kaggle Data\nNot the…? Yes, the Titanic again….\n\n\nCode\ntrain <- read_csv(\"data_raw/train.csv\",show_col_types = FALSE) %>% clean_names() %>% mutate(train_test = \"train\")\ntest <- read_csv(\"data_raw/test.csv\",show_col_types = FALSE) %>% clean_names() %>% \n  mutate(train_test = \"test\")\nall <- train %>% bind_rows(test)\n\n# colnames(data)\n# cwd()"
+  },
+  {
+    "objectID": "posts/post-with-code/index.html#some-initial-eda",
+    "href": "posts/post-with-code/index.html#some-initial-eda",
+    "title": "Titanic EDA",
+    "section": "Some Initial EDA",
+    "text": "Some Initial EDA\nA quick look.\n\n\nCode\ntrain %>% skim() \n\n\n\nData summary\n\n\nName\nPiped data\n\n\nNumber of rows\n891\n\n\nNumber of columns\n13\n\n\n_______________________\n\n\n\nColumn type frequency:\n\n\n\ncharacter\n6\n\n\nnumeric\n7\n\n\n________________________\n\n\n\nGroup variables\nNone\n\n\n\nVariable type: character\n\n\n\n\n\n\n\n\n\n\n\n\n\nskim_variable\nn_missing\ncomplete_rate\nmin\nmax\nempty\nn_unique\nwhitespace\n\n\n\n\nname\n0\n1.00\n12\n82\n0\n891\n0\n\n\nsex\n0\n1.00\n4\n6\n0\n2\n0\n\n\nticket\n0\n1.00\n3\n18\n0\n681\n0\n\n\ncabin\n687\n0.23\n1\n15\n0\n147\n0\n\n\nembarked\n2\n1.00\n1\n1\n0\n3\n0\n\n\ntrain_test\n0\n1.00\n5\n5\n0\n1\n0\n\n\n\nVariable type: numeric\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nskim_variable\nn_missing\ncomplete_rate\nmean\nsd\np0\np25\np50\np75\np100\nhist\n\n\n\n\npassenger_id\n0\n1.0\n446.00\n257.35\n1.00\n223.50\n446.00\n668.5\n891.00\n▇▇▇▇▇\n\n\nsurvived\n0\n1.0\n0.38\n0.49\n0.00\n0.00\n0.00\n1.0\n1.00\n▇▁▁▁▅\n\n\npclass\n0\n1.0\n2.31\n0.84\n1.00\n2.00\n3.00\n3.0\n3.00\n▃▁▃▁▇\n\n\nage\n177\n0.8\n29.70\n14.53\n0.42\n20.12\n28.00\n38.0\n80.00\n▂▇▅▂▁\n\n\nsib_sp\n0\n1.0\n0.52\n1.10\n0.00\n0.00\n0.00\n1.0\n8.00\n▇▁▁▁▁\n\n\nparch\n0\n1.0\n0.38\n0.81\n0.00\n0.00\n0.00\n0.0\n6.00\n▇▁▁▁▁\n\n\nfare\n0\n1.0\n32.20\n49.69\n0.00\n7.91\n14.45\n31.0\n512.33\n▇▁▁▁▁"
+  },
+  {
+    "objectID": "posts/post-with-code/index.html#some-initial-wrangling",
+    "href": "posts/post-with-code/index.html#some-initial-wrangling",
+    "title": "Titanic EDA",
+    "section": "Some Initial Wrangling",
+    "text": "Some Initial Wrangling\n\n\nCode\nall_proc <- all %>% \n  mutate(title = str_extract(name,\"(\\\\w)([a-z]+)(\\\\.)\")) %>% \n  mutate(pax_type = case_when(\n    title %in% c(\"Miss.\",\"Ms.\",\"Mlle.\")         ~ \"F_unmarried\",\n    title %in% c(\"Mme.\",\"Mrs.\")                 ~ \"F_married\",\n    title %in% c(\"Countess.\",\"Lady.\",\"Dona.\")   ~ \"F_titled\",\n    title %in% c(\"Capt.\",\"Col.\",\"Major.\")       ~ \"Military\",\n    title %in% c(\"Dr.\",\"Rev.\")                  ~ \"M_Professional\",\n    title %in% c(\"Don.\",\"Jonkheer.\",\"Sir.\")     ~ \"M_titled\",\n    TRUE ~ title\n  ),\n  surname        = str_extract(name,\"(\\\\w+)(\\\\,)\"),\n  survival       = ifelse(survived==0,\"No\",\"Yes\"),\n  ticket_preface = str_extract(ticket,\"([:graph:]+)(\\\\s)\"),\n  ticket_preface = ifelse(is.na(ticket_preface),\"none\",ticket_preface),\n  cabin_preface  = ifelse(is.na(cabin),\"nk\",\n                    substr(cabin,1,1)),\n  embarked       = ifelse(is.na(embarked),\"S\",embarked)\n  ) %>% \n  group_by(pax_type,pclass) %>% \n  mutate(age     = ifelse(is.na(age),median(age,na.rm = T), age)) %>% \n  ungroup() %>% \n  add_count(ticket,name = \"ticket_group\") %>% \n  mutate(ticket_group = case_when(\n    ticket_group == 1 ~ \"single\",\n    ticket_group == 2 ~ \"couple\",\n    TRUE              ~ \"group\"\n  ),\n    family_group = as.numeric(sib_sp)+as.numeric(parch)+1\n  ) %>% \n  mutate(family_group = factor(\n    case_when(\n        family_group < 2  ~ \"single\",\n        family_group < 3  ~ \"couple\",\n        TRUE              ~ \"family\"\n        ),\n    ordered = TRUE)\n  ) %>% \n  mutate(age_group = factor(case_when(\n    age < 13      ~ \"child\",\n    age < 20      ~ \"teen\",\n    age < 30      ~ \"20s\",\n    age < 40      ~ \"30s\",\n    age < 50      ~ \"40s\",\n    age < 60      ~ \"50s\",\n    TRUE          ~ \"60+\"\n    \n  ),\n  ordered = TRUE)\n  ) %>% \n  mutate(across(where(is.character),as_factor)) %>% \n  mutate(pclass = factor(pclass,levels = c(\"1\",\"2\",\"3\")),\n         survived = factor(survived)\n         ) %>% \nselect(-c(title,ticket_preface))\n  \n#all_proc %>% glimpse()"
+  },
+  {
+    "objectID": "posts/post-with-code/index.html#a-bit-more-eda",
+    "href": "posts/post-with-code/index.html#a-bit-more-eda",
+    "title": "Titanic EDA",
+    "section": "A bit more EDA",
+    "text": "A bit more EDA\n\n\nCode\nall_proc %>% \n  select(-c(name,ticket,cabin,surname,train_test)) %>% \n  DataExplorer::plot_bar()\n\n\n\n\n\n\n\n\n\n\nCode\nall_proc %>% DataExplorer::plot_histogram(ggtheme = theme_light() )"
+  },
+  {
+    "objectID": "posts/post-with-code/index.html#eyeballing-survival-graphs-on-training-data",
+    "href": "posts/post-with-code/index.html#eyeballing-survival-graphs-on-training-data",
+    "title": "Titanic EDA",
+    "section": "Eyeballing Survival Graphs on Training Data",
+    "text": "Eyeballing Survival Graphs on Training Data\n\n\nCode\nno_f <- all_proc %>%\n  filter(train_test == \"train\") %>% \n  select(passenger_id,pclass,sex,embarked,pax_type,ticket_group,family_group,age_group,cabin_preface,survival) %>% \n  droplevels() %>%\n  mutate(across(where(is.factor),~ factor(.x,ordered = FALSE))) %>%\n  pivot_longer(cols = c(pclass:cabin_preface)) \n\n\ng_l <- no_f %>% \n  split(.$name) %>% \n  map(~ ggplot(.,aes(y=value,fill=survival)) +\n                geom_bar() +\n              ggtitle(.$name) +\n        theme_bw() +\n        labs(x=NULL,y=NULL)+\n        scale_fill_viridis_d(option = \"cividis\")\n      \n            ) \n\nlibrary(patchwork)\nwrap_plots(g_l, ncol = 2)"
+  },
+  {
+    "objectID": "posts/post-with-code/index.html#split-data-back-to-traintestvalidation",
+    "href": "posts/post-with-code/index.html#split-data-back-to-traintestvalidation",
+    "title": "Titanic EDA",
+    "section": "Split Data back to Train/Test/Validation",
+    "text": "Split Data back to Train/Test/Validation\n\n\nCode\ntrain_proc_adj_tbl <- all_proc %>% \n  filter(train_test ==\"train\") %>% \n  select(-c(survival))\n  \ntrain_split <- initial_split(train_proc_adj_tbl,strata = survived)"
+  },
+  {
+    "objectID": "posts/post-with-code/index.html#recipe-base",
+    "href": "posts/post-with-code/index.html#recipe-base",
+    "title": "Titanic EDA",
+    "section": "Recipe-Base",
+    "text": "Recipe-Base\n\n\nCode\nrecipe_base <- \n  recipe(survived ~ ., data = training(train_split)) %>% \n  update_role(passenger_id, name,surname,ticket,cabin,new_role = \"ID\") %>%\n  step_impute_knn(all_numeric_predictors()) %>% \n  step_dummy(all_nominal_predictors()) %>%\n  step_factor2string(all_nominal_predictors()) %>% \n  step_zv(all_predictors()) %>% \n  step_pca()\nrecipe_base\n\n\nRecipe\n\nInputs:\n\n      role #variables\n        ID          5\n   outcome          1\n predictor         13\n\nOperations:\n\nK-nearest neighbor imputation for all_numeric_predictors()\nDummy variables from all_nominal_predictors()\nCharacter variables from all_nominal_predictors()\nZero variance filter on all_predictors()\nPCA extraction with <none>"
+  },
+  {
+    "objectID": "posts/post-with-code/index.html#save-files",
+    "href": "posts/post-with-code/index.html#save-files",
+    "title": "Titanic EDA",
+    "section": "Save Files",
+    "text": "Save Files\n\n\nCode\nwrite_rds(all_proc,\"artifacts/all_proc.rds\")\nwrite_rds(train_split,\"artifacts/train_split.rds\")\nwrite_rds(recipe_base,\"artifacts/recipe_base.rds\")\n\nall_proc <- read_rds(\"artifacts/all_proc.rds\")\ntrain_split <- read_rds(\"artifacts/train_split.rds\")\nrecipe_base <- read_rds(\"artifacts/recipe_base.rds\")"
+  },
+  {
+    "objectID": "posts/post-with-code/index.html#models",
+    "href": "posts/post-with-code/index.html#models",
+    "title": "Titanic EDA",
+    "section": "Models",
+    "text": "Models\n\nLogistic Regression\n\nLR Model Spec\n\n\nCode\nlr_spec <-  \n  logistic_reg() %>% \n  set_engine(\"glm\")\n\nlr_spec\n\n\nLogistic Regression Model Specification (classification)\n\nComputational engine: glm \n\n\n\n\nLR Workflow\n\n\nCode\nlr_wflow <- \n  workflow() %>% \n  add_model(lr_spec) %>% \n  add_recipe(recipe_base)\n\nlr_wflow\n\n\n══ Workflow ════════════════════════════════════════════════════════════════════\nPreprocessor: Recipe\nModel: logistic_reg()\n\n── Preprocessor ────────────────────────────────────────────────────────────────\n5 Recipe Steps\n\n• step_impute_knn()\n• step_dummy()\n• step_factor2string()\n• step_zv()\n• step_pca()\n\n── Model ───────────────────────────────────────────────────────────────────────\nLogistic Regression Model Specification (classification)\n\nComputational engine: glm \n\n\n\n\nLR Fit Model\n\n\nCode\nlr_fit <- \n  lr_wflow %>% \n  last_fit(train_split)\n\n\n! train/test split: preprocessor 1/1, model 1/1 (predictions): prediction from a rank-deficient fit may be misleading\n\n\nCode\n#lr_fit\n\nlr_final_metrics <- lr_fit %>% collect_metrics()\nlr_final_metrics \n\n\n# A tibble: 2 × 4\n  .metric  .estimator .estimate .config             \n  <chr>    <chr>          <dbl> <chr>               \n1 accuracy binary         0.821 Preprocessor1_Model1\n2 roc_auc  binary         0.858 Preprocessor1_Model1\n\n\nCode\n#show_notes(.Last.tune.result)\n\n\n\n\nLR Predict\n\n\nCode\nlr_test_predictions <- lr_fit %>% collect_predictions()\nlr_test_predictions\n\n\n# A tibble: 224 × 7\n   id               .pred_0 .pred_1  .row .pred_class survived .config          \n   <chr>              <dbl>   <dbl> <int> <fct>       <fct>    <chr>            \n 1 train/test split  0.0318  0.968      2 1           1        Preprocessor1_Mo…\n 2 train/test split  0.899   0.101      6 0           0        Preprocessor1_Mo…\n 3 train/test split  0.777   0.223      7 0           0        Preprocessor1_Mo…\n 4 train/test split  0.271   0.729      9 1           1        Preprocessor1_Mo…\n 5 train/test split  0.150   0.850     10 1           1        Preprocessor1_Mo…\n 6 train/test split  0.989   0.0112    14 0           0        Preprocessor1_Mo…\n 7 train/test split  0.339   0.661     15 1           0        Preprocessor1_Mo…\n 8 train/test split  0.754   0.246     18 0           1        Preprocessor1_Mo…\n 9 train/test split  0.170   0.830     20 1           1        Preprocessor1_Mo…\n10 train/test split  0.843   0.157     21 0           0        Preprocessor1_Mo…\n# … with 214 more rows\n\n\n\n\nLR Performance on validation set\n\nAUC Curve\n\n\nCode\nlr_test_predictions %>% \n  roc_curve(truth = survived,.pred_1,event_level=\"second\") %>% \n  autoplot()\n\n\n\n\n\n\n\nConfusion Matrix\n\n\nCode\nlr_test_predictions %>% \n  conf_mat(survived,.pred_class) %>% \n  autoplot(type = \"heatmap\")\n\n\n\n\n\n\n\n\nLR Resampling\n\n\nCode\nfolds <- vfold_cv(training(train_split), strata = survived, v=10)\n#folds\n\ncontrol <- control_resamples(save_pred = TRUE)\n\nlr_fit_cv <- \n  lr_wflow %>% \n  fit_resamples(folds, control = control)\n\n#show_best(lr_fit_cv,metric= \"accuracy\")\n\n#lr_fit_cv\nlr_metrics_resample <- collect_metrics(lr_fit_cv)\nlr_metrics_resample\n\n\n# A tibble: 2 × 6\n  .metric  .estimator  mean     n std_err .config             \n  <chr>    <chr>      <dbl> <int>   <dbl> <chr>               \n1 accuracy binary     0.801    10  0.0169 Preprocessor1_Model1\n2 roc_auc  binary     0.848    10  0.0193 Preprocessor1_Model1"
+  },
+  {
+    "objectID": "posts/welcome/index.html",
+    "href": "posts/welcome/index.html",
+    "title": "What is this for?",
+    "section": "",
+    "text": "This is my public notebook created in Quarto after seeing all the recent webinars from the amazing people at RStudio (eg JJ Allaire, Tom Mock and Isabella Velasquez)\nIt is intended that it will contain public ‘Notes to Myself’ on some of my interests which professionally are likely to centre on things like:\n\nR Programming\nPython Programming\nML analytics in R and Python\nFinance and data analytics (my day job)\nOther analytics and notes collected from wherever\n\nNot sure that it will be much use to anyone else, but feel free to wander through."
+  }
+]
