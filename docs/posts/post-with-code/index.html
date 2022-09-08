@@ -8,7 +8,7 @@
 
 <meta name="author" content="Stephen Parton">
 
-<title>Notes to Myself - Titanic EDA</title>
+<title>Notes to Myself - Titanic from Kaggle</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -121,14 +121,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 }</script>
 
 
-<link rel="stylesheet" href="styles.css">
-<meta property="og:title" content="Notes to Myself - Titanic EDA">
+<meta property="og:title" content="Notes to Myself - Titanic from Kaggle">
 <meta property="og:description" content="This is just a first test with code in a blog using the new Quarto framework! Guess what I am using..">
 <meta property="og:image" content="thumbnail.jpg">
 <meta property="og:site-name" content="Notes to Myself">
 </head>
 
-<body class="nav-fixed fullcontent">
+<body class="nav-fixed">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -177,7 +176,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Titanic EDA</h1>
+      <h1 class="title">Titanic from Kaggle</h1>
                                 <div class="quarto-categories">
                 <div class="quarto-category">code</div>
                 <div class="quarto-category">analysis</div>
@@ -209,7 +208,32 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc">
+    <h2 id="toc-title">Contents</h2>
+   
+  <ul>
+  <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary"> <span class="header-section-number">1</span> Summary</a></li>
+  <li><a href="#review-data" id="toc-review-data" class="nav-link" data-scroll-target="#review-data"> <span class="header-section-number">2</span> Review Data</a>
+  <ul class="collapse">
+  <li><a href="#load-some-kaggle-data" id="toc-load-some-kaggle-data" class="nav-link" data-scroll-target="#load-some-kaggle-data"> <span class="header-section-number">2.1</span> Load Some Kaggle Data</a></li>
+  <li><a href="#some-initial-eda" id="toc-some-initial-eda" class="nav-link" data-scroll-target="#some-initial-eda"> <span class="header-section-number">2.2</span> Some Initial EDA</a></li>
+  <li><a href="#some-initial-wrangling" id="toc-some-initial-wrangling" class="nav-link" data-scroll-target="#some-initial-wrangling"> <span class="header-section-number">2.3</span> Some Initial Wrangling</a></li>
+  <li><a href="#a-bit-more-eda" id="toc-a-bit-more-eda" class="nav-link" data-scroll-target="#a-bit-more-eda"> <span class="header-section-number">2.4</span> A bit more EDA</a></li>
+  <li><a href="#eyeballing-survival-graphs-on-training-data" id="toc-eyeballing-survival-graphs-on-training-data" class="nav-link" data-scroll-target="#eyeballing-survival-graphs-on-training-data"> <span class="header-section-number">2.5</span> Eyeballing Survival Graphs on Training Data</a></li>
+  <li><a href="#split-data-back-to-traintestvalidation" id="toc-split-data-back-to-traintestvalidation" class="nav-link" data-scroll-target="#split-data-back-to-traintestvalidation"> <span class="header-section-number">2.6</span> Split Data back to Train/Test/Validation</a></li>
+  </ul></li>
+  <li><a href="#recipe-base" id="toc-recipe-base" class="nav-link" data-scroll-target="#recipe-base"> <span class="header-section-number">3</span> Recipe-Base</a>
+  <ul class="collapse">
+  <li><a href="#save-files" id="toc-save-files" class="nav-link" data-scroll-target="#save-files"> <span class="header-section-number">3.1</span> Save Files</a></li>
+  </ul></li>
+  <li><a href="#models" id="toc-models" class="nav-link" data-scroll-target="#models"> <span class="header-section-number">4</span> Models</a>
+  <ul class="collapse">
+  <li><a href="#logistic-regression" id="toc-logistic-regression" class="nav-link" data-scroll-target="#logistic-regression"> <span class="header-section-number">4.1</span> Logistic Regression</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
 <!-- main -->
 <main class="content quarto-banner-title-block" id="quarto-document-content">
 
@@ -217,12 +241,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 <p><img src="thumbnail.jpg" class="img-fluid" width="215"></p>
-<section id="summary" class="level2">
-<h2 class="anchored" data-anchor-id="summary">Summary</h2>
+<section id="summary" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="summary"><span class="header-section-number">1</span> Summary</h2>
 <p>This is just a first test with code in a blog using the new Quarto framework! Guess what I am using..</p>
 </section>
-<section id="load-some-kaggle-data" class="level2">
-<h2 class="anchored" data-anchor-id="load-some-kaggle-data">Load Some Kaggle Data</h2>
+<section id="review-data" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="review-data"><span class="header-section-number">2</span> Review Data</h2>
+<section id="load-some-kaggle-data" class="level3" data-number="2.1">
+<h3 data-number="2.1" class="anchored" data-anchor-id="load-some-kaggle-data"><span class="header-section-number">2.1</span> Load Some Kaggle Data</h3>
 <p>Not the…? Yes, the Titanic again….</p>
 <div class="cell">
 <details>
@@ -237,8 +263,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </details>
 </div>
 </section>
-<section id="some-initial-eda" class="level2">
-<h2 class="anchored" data-anchor-id="some-initial-eda">Some Initial EDA</h2>
+<section id="some-initial-eda" class="level3" data-number="2.2">
+<h3 data-number="2.2" class="anchored" data-anchor-id="some-initial-eda"><span class="header-section-number">2.2</span> Some Initial EDA</h3>
 <p>A quick look.</p>
 <div class="cell">
 <details>
@@ -501,8 +527,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 </div>
 </section>
-<section id="some-initial-wrangling" class="level2">
-<h2 class="anchored" data-anchor-id="some-initial-wrangling">Some Initial Wrangling</h2>
+<section id="some-initial-wrangling" class="level3" data-number="2.3">
+<h3 data-number="2.3" class="anchored" data-anchor-id="some-initial-wrangling"><span class="header-section-number">2.3</span> Some Initial Wrangling</h3>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -566,8 +592,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </details>
 </div>
 </section>
-<section id="a-bit-more-eda" class="level2">
-<h2 class="anchored" data-anchor-id="a-bit-more-eda">A bit more EDA</h2>
+<section id="a-bit-more-eda" class="level3" data-number="2.4">
+<h3 data-number="2.4" class="anchored" data-anchor-id="a-bit-more-eda"><span class="header-section-number">2.4</span> A bit more EDA</h3>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -592,8 +618,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 </div>
 </section>
-<section id="eyeballing-survival-graphs-on-training-data" class="level2">
-<h2 class="anchored" data-anchor-id="eyeballing-survival-graphs-on-training-data">Eyeballing Survival Graphs on Training Data</h2>
+<section id="eyeballing-survival-graphs-on-training-data" class="level3" data-number="2.5">
+<h3 data-number="2.5" class="anchored" data-anchor-id="eyeballing-survival-graphs-on-training-data"><span class="header-section-number">2.5</span> Eyeballing Survival Graphs on Training Data</h3>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -624,8 +650,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 </div>
 </section>
-<section id="split-data-back-to-traintestvalidation" class="level2">
-<h2 class="anchored" data-anchor-id="split-data-back-to-traintestvalidation">Split Data back to Train/Test/Validation</h2>
+<section id="split-data-back-to-traintestvalidation" class="level3" data-number="2.6">
+<h3 data-number="2.6" class="anchored" data-anchor-id="split-data-back-to-traintestvalidation"><span class="header-section-number">2.6</span> Split Data back to Train/Test/Validation</h3>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -637,8 +663,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </details>
 </div>
 </section>
-<section id="recipe-base" class="level2">
-<h2 class="anchored" data-anchor-id="recipe-base">Recipe-Base</h2>
+</section>
+<section id="recipe-base" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="recipe-base"><span class="header-section-number">3</span> Recipe-Base</h2>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -671,9 +698,8 @@ Zero variance filter on all_predictors()
 PCA extraction with &lt;none&gt;</code></pre>
 </div>
 </div>
-</section>
-<section id="save-files" class="level2">
-<h2 class="anchored" data-anchor-id="save-files">Save Files</h2>
+<section id="save-files" class="level3" data-number="3.1">
+<h3 data-number="3.1" class="anchored" data-anchor-id="save-files"><span class="header-section-number">3.1</span> Save Files</h3>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -687,10 +713,11 @@ PCA extraction with &lt;none&gt;</code></pre>
 </details>
 </div>
 </section>
-<section id="models" class="level2">
-<h2 class="anchored" data-anchor-id="models">Models</h2>
-<section id="logistic-regression" class="level3">
-<h3 class="anchored" data-anchor-id="logistic-regression">Logistic Regression</h3>
+</section>
+<section id="models" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="models"><span class="header-section-number">4</span> Models</h2>
+<section id="logistic-regression" class="level3" data-number="4.1">
+<h3 data-number="4.1" class="anchored" data-anchor-id="logistic-regression"><span class="header-section-number">4.1</span> Logistic Regression</h3>
 <section id="lr-model-spec" class="level4">
 <h4 class="anchored" data-anchor-id="lr-model-spec">LR Model Spec</h4>
 <div class="cell">
@@ -749,28 +776,23 @@ Computational engine: glm </code></pre>
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>lr_fit <span class="ot">&lt;-</span> </span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  lr_wflow <span class="sc">%&gt;%</span> </span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">last_fit</span>(train_split)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output cell-output-stderr">
-<pre><code>! train/test split: preprocessor 1/1, model 1/1 (predictions): prediction from a rank-deficient fit may be misleading</code></pre>
-</div>
-<details>
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">#lr_fit</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>lr_final_metrics <span class="ot">&lt;-</span> lr_fit <span class="sc">%&gt;%</span> <span class="fu">collect_metrics</span>()</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>lr_final_metrics </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">last_fit</span>(train_split)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">#lr_fit</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>lr_final_metrics <span class="ot">&lt;-</span> lr_fit <span class="sc">%&gt;%</span> <span class="fu">collect_metrics</span>()</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>lr_final_metrics </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 4
   .metric  .estimator .estimate .config             
   &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;               
-1 accuracy binary         0.821 Preprocessor1_Model1
-2 roc_auc  binary         0.858 Preprocessor1_Model1</code></pre>
+1 accuracy binary         0.808 Preprocessor1_Model1
+2 roc_auc  binary         0.854 Preprocessor1_Model1</code></pre>
 </div>
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">#show_notes(.Last.tune.result)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">#show_notes(.Last.tune.result)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -779,23 +801,23 @@ Computational engine: glm </code></pre>
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>lr_test_predictions <span class="ot">&lt;-</span> lr_fit <span class="sc">%&gt;%</span> <span class="fu">collect_predictions</span>()</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>lr_test_predictions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>lr_test_predictions <span class="ot">&lt;-</span> lr_fit <span class="sc">%&gt;%</span> <span class="fu">collect_predictions</span>()</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>lr_test_predictions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 224 × 7
    id               .pred_0 .pred_1  .row .pred_class survived .config          
    &lt;chr&gt;              &lt;dbl&gt;   &lt;dbl&gt; &lt;int&gt; &lt;fct&gt;       &lt;fct&gt;    &lt;chr&gt;            
- 1 train/test split  0.0318  0.968      2 1           1        Preprocessor1_Mo…
- 2 train/test split  0.899   0.101      6 0           0        Preprocessor1_Mo…
- 3 train/test split  0.777   0.223      7 0           0        Preprocessor1_Mo…
- 4 train/test split  0.271   0.729      9 1           1        Preprocessor1_Mo…
- 5 train/test split  0.150   0.850     10 1           1        Preprocessor1_Mo…
- 6 train/test split  0.989   0.0112    14 0           0        Preprocessor1_Mo…
- 7 train/test split  0.339   0.661     15 1           0        Preprocessor1_Mo…
- 8 train/test split  0.754   0.246     18 0           1        Preprocessor1_Mo…
- 9 train/test split  0.170   0.830     20 1           1        Preprocessor1_Mo…
-10 train/test split  0.843   0.157     21 0           0        Preprocessor1_Mo…
+ 1 train/test split  0.0547  0.945      2 1           1        Preprocessor1_Mo…
+ 2 train/test split  0.923   0.0774     6 0           0        Preprocessor1_Mo…
+ 3 train/test split  0.536   0.464      7 0           0        Preprocessor1_Mo…
+ 4 train/test split  0.338   0.662     15 1           0        Preprocessor1_Mo…
+ 5 train/test split  0.710   0.290     17 0           0        Preprocessor1_Mo…
+ 6 train/test split  0.241   0.759     19 1           0        Preprocessor1_Mo…
+ 7 train/test split  0.824   0.176     21 0           0        Preprocessor1_Mo…
+ 8 train/test split  0.590   0.410     22 0           1        Preprocessor1_Mo…
+ 9 train/test split  0.914   0.0858    27 0           0        Preprocessor1_Mo…
+10 train/test split  0.317   0.683     33 1           1        Preprocessor1_Mo…
 # … with 214 more rows</code></pre>
 </div>
 </div>
@@ -807,9 +829,9 @@ Computational engine: glm </code></pre>
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>lr_test_predictions <span class="sc">%&gt;%</span> </span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">roc_curve</span>(<span class="at">truth =</span> survived,.pred_1,<span class="at">event_level=</span><span class="st">"second"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">autoplot</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>lr_test_predictions <span class="sc">%&gt;%</span> </span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">roc_curve</span>(<span class="at">truth =</span> survived,.pred_1,<span class="at">event_level=</span><span class="st">"second"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">autoplot</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <p><img src="index_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid" width="672"></p>
@@ -821,9 +843,9 @@ Computational engine: glm </code></pre>
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>lr_test_predictions <span class="sc">%&gt;%</span> </span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">conf_mat</span>(survived,.pred_class) <span class="sc">%&gt;%</span> </span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">autoplot</span>(<span class="at">type =</span> <span class="st">"heatmap"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>lr_test_predictions <span class="sc">%&gt;%</span> </span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">conf_mat</span>(survived,.pred_class) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">autoplot</span>(<span class="at">type =</span> <span class="st">"heatmap"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <p><img src="index_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid" width="672"></p>
@@ -836,27 +858,27 @@ Computational engine: glm </code></pre>
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>folds <span class="ot">&lt;-</span> <span class="fu">vfold_cv</span>(<span class="fu">training</span>(train_split), <span class="at">strata =</span> survived, <span class="at">v=</span><span class="dv">10</span>)</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co">#folds</span></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>control <span class="ot">&lt;-</span> <span class="fu">control_resamples</span>(<span class="at">save_pred =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>lr_fit_cv <span class="ot">&lt;-</span> </span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  lr_wflow <span class="sc">%&gt;%</span> </span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fit_resamples</span>(folds, <span class="at">control =</span> control)</span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="co">#show_best(lr_fit_cv,metric= "accuracy")</span></span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a><span class="co">#lr_fit_cv</span></span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>lr_metrics_resample <span class="ot">&lt;-</span> <span class="fu">collect_metrics</span>(lr_fit_cv)</span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>lr_metrics_resample</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>folds <span class="ot">&lt;-</span> <span class="fu">vfold_cv</span>(<span class="fu">training</span>(train_split), <span class="at">strata =</span> survived, <span class="at">v=</span><span class="dv">10</span>,<span class="at">repeats =</span> <span class="dv">5</span>)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co">#folds</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>control <span class="ot">&lt;-</span> <span class="fu">control_resamples</span>(<span class="at">save_pred =</span> <span class="cn">TRUE</span>,<span class="at">save_workflow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>lr_fit_cv <span class="ot">&lt;-</span> </span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  lr_wflow <span class="sc">%&gt;%</span> </span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fit_resamples</span>(folds, <span class="at">control =</span> control)</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="co">#show_best(lr_fit_cv,metric= "accuracy")</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="co">#lr_fit_cv</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>lr_metrics_resample <span class="ot">&lt;-</span> <span class="fu">collect_metrics</span>(lr_fit_cv)</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>lr_metrics_resample</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 6
   .metric  .estimator  mean     n std_err .config             
   &lt;chr&gt;    &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;               
-1 accuracy binary     0.801    10  0.0169 Preprocessor1_Model1
-2 roc_auc  binary     0.848    10  0.0193 Preprocessor1_Model1</code></pre>
+1 accuracy binary     0.813    50 0.00600 Preprocessor1_Model1
+2 roc_auc  binary     0.854    50 0.00780 Preprocessor1_Model1</code></pre>
 </div>
 </div>
 

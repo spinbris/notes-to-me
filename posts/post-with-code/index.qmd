@@ -1,11 +1,21 @@
 ---
-title: "Titanic EDA"
+title: "Titanic from Kaggle"
 author: "Stephen Parton"
 date: "2022-09-01"
 categories: [code, analysis,titanic]
-
+website:
+  sidebar:
+    style: "docked"
+    search: true
+    contents:
+      - section: "Data Exploration"
+      - index.qmd
 format: 
   html: 
+    toc: true
+    toc-title: Contents
+    number-sections: true
+    number-depth: 3
     code-fold: true
 ---
 
@@ -31,7 +41,8 @@ tidymodels_prefer()
 
 ```
 
-## Load Some Kaggle Data
+## Review Data
+### Load Some Kaggle Data
 
 Not the...? Yes, the Titanic again....
 
@@ -50,7 +61,7 @@ all <- train %>% bind_rows(test)
 
 ```
 
-## Some Initial EDA
+### Some Initial EDA
 
 A quick look.
 
@@ -58,7 +69,7 @@ A quick look.
 train %>% skim() 
 ```
 
-## Some Initial Wrangling
+### Some Initial Wrangling
 
 ```{r}
 all_proc <- all %>% 
@@ -121,7 +132,7 @@ select(-c(title,ticket_preface))
 
 ```
 
-## A bit more EDA
+### A bit more EDA
 
 ```{r}
 all_proc %>% 
@@ -133,7 +144,7 @@ all_proc %>%
 all_proc %>% DataExplorer::plot_histogram(ggtheme = theme_light() )
 ```
 
-## Eyeballing Survival Graphs on Training Data
+### Eyeballing Survival Graphs on Training Data
 
 ```{r, fig.height=15}
 #| warning: false
@@ -162,7 +173,7 @@ wrap_plots(g_l, ncol = 2)
 
 ```
 
-## Split Data back to Train/Test/Validation
+### Split Data back to Train/Test/Validation
 
 ```{r}
 
@@ -192,7 +203,7 @@ recipe_base
 
 ```
 
-## Save Files
+### Save Files
 
 ```{r}
 
@@ -288,10 +299,10 @@ lr_test_predictions %>%
 #| message: false
 #| warning: false
 
-folds <- vfold_cv(training(train_split), strata = survived, v=10)
+folds <- vfold_cv(training(train_split), strata = survived, v=10,repeats = 5)
 #folds
 
-control <- control_resamples(save_pred = TRUE)
+control <- control_resamples(save_pred = TRUE,save_workflow = TRUE)
 
 lr_fit_cv <- 
   lr_wflow %>% 

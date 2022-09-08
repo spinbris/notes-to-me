@@ -89,7 +89,6 @@ ul.task-list{list-style: none;}
 
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
-<link rel="stylesheet" href="styles.css">
 <meta property="og:title" content="Notes to Myself - Notes Index">
 <meta property="og:image" content="./posts/model-01-logistic_regression/thumbnail.jpg">
 <meta property="og:site-name" content="Notes to Myself">
@@ -171,15 +170,40 @@ ul.task-list{list-style: none;}
 
 
 <div class="quarto-listing quarto-listing-container-default" id="listing-listing">
+<div class="listing-actions-group">
+   <div class="input-group input-group-sm quarto-listing-sort">
+     <span class="input-group-text"><i class="bi bi-sort-down"></i></span>
+     <select id="listing-listing-sort" class="form-select" aria-label="Order By" onchange="window['quarto-listings']['listing-listing'].sort(this.options[this.selectedIndex].value, { order: this.options[this.selectedIndex].getAttribute('data-direction')})">
+       <option value="" disabled="" selected="" hidden="">Order By</option>
+       <option value="index" data-direction="asc">Default</option>
+         <option value="listing-title" data-direction="asc">
+          Title
+        </option>
+         <option value="listing-date-sort" data-direction="asc">
+          Date - Oldest
+        </option>
+         <option value="listing-date-sort" data-direction="desc">
+          Date - Newest
+        </option>
+         <option value="listing-author" data-direction="asc">
+          Author
+        </option>
+     </select>
+  </div>
+    <div class="input-group input-group-sm quarto-listing-filter">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input type="text" class="search form-control" placeholder="Filter">
+    </div>
+</div>
 <div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="code,analysis,titanic" data-listing-date-sort="1662300000000" data-listing-file-modified-sort="1662614035375" data-listing-reading-time-sort="0.72">
+<div class="quarto-post image-right" data-index="0" data-categories="code,analysis,titanic" data-listing-date-sort="1662300000000" data-listing-file-modified-sort="1662679050218" data-listing-reading-time-sort="0.77">
 <div class="thumbnail">
 <p><a href="./posts/model-01-logistic_regression/index.html"> <img src="./posts/model-01-logistic_regression/thumbnail.jpg" class="thumnail-image"> </a></p>
 </div>
 <div class="body">
 <a href="./posts/model-01-logistic_regression/index.html">
 <h3 class="no-anchor listing-title">
-Titanic Logistic Regression
+Titanic Modelling
 </h3>
 <div class="listing-subtitle">
 
@@ -205,7 +229,7 @@ titanic
 <div class="metadata">
 <a href="./posts/model-01-logistic_regression/index.html">
 <div class="listing-date">
-05-09-2022
+Sep 5, 2022
 </div>
 <div class="listing-author">
 Stephen Parton
@@ -213,14 +237,14 @@ Stephen Parton
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="1" data-categories="code,analysis,titanic" data-listing-date-sort="1661954400000" data-listing-file-modified-sort="1662614035397" data-listing-reading-time-sort="4.465">
+<div class="quarto-post image-right" data-index="1" data-categories="code,analysis,titanic" data-listing-date-sort="1661954400000" data-listing-file-modified-sort="1662680710188" data-listing-reading-time-sort="4.495">
 <div class="thumbnail">
 <p><a href="./posts/post-with-code/index.html"> <img src="./posts/post-with-code/thumbnail.jpg" class="thumnail-image"> </a></p>
 </div>
 <div class="body">
 <a href="./posts/post-with-code/index.html">
 <h3 class="no-anchor listing-title">
-Titanic EDA
+Titanic from Kaggle
 </h3>
 <div class="listing-subtitle">
 
@@ -246,7 +270,7 @@ titanic
 <div class="metadata">
 <a href="./posts/post-with-code/index.html">
 <div class="listing-date">
-01-09-2022
+Sep 1, 2022
 </div>
 <div class="listing-author">
 Stephen Parton
@@ -281,7 +305,7 @@ news
 <div class="metadata">
 <a href="./posts/welcome/index.html">
 <div class="listing-date">
-29-08-2022
+Aug 29, 2022
 </div>
 <div class="listing-author">
 Stephen Parton

@@ -20,13 +20,14 @@ website:
         href: https://twitter.com/spinb
       - icon: linkedin
         href: https://www.linkedin.com/in/stephen-parton-2737594/
+  
 date-format: "DD-MM-YYYY"
 format:
   html:
     theme: 
       light: litera
       dark: darkly
-    css: styles.css
+    #css: styles.css
     highlight-style: espresso
 
 editor: visual

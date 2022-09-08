@@ -1,5 +1,5 @@
 ---
-title: "Titanic Logistic Regression"
+title: "Titanic Modelling"
 author: "Stephen Parton"
 date: "2022-09-05"
 categories: [code, analysis,titanic]
@@ -143,3 +143,21 @@ lr_metrics_resample <- collect_metrics(lr_fit_cv)
 lr_metrics_resample
 
 ```
+
+
+
+```{r}
+
+lr_assess_res <- collect_predictions(lr_fit_cv)
+lr_assess_res
+
+```
+
+
+
+```{r}
+lm_fit <- lr_wflow %>% fit(data = train_proc_adj_tbl)
+extract_recipe(lm_fit,estimated = TRUE)
+
+```
+
