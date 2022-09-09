@@ -37,11 +37,14 @@ library(DataExplorer)
 
 
 library(tidymodels)
+library(vip)
+library(ggforce)
 tidymodels_prefer()
 
 ```
 
 ## Review Data
+
 ### Load Some Kaggle Data
 
 Not the...? Yes, the Titanic again....
@@ -271,7 +274,7 @@ lr_test_predictions
 
 #### LR Performance on validation set
 
-##### AUC Curve 
+##### AUC Curve
 
 ```{r}
 
