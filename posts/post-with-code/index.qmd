@@ -25,7 +25,7 @@ format:
 
 This is just a first test with code in a blog using the new Quarto framework! Guess what I am using..
 
-```{r}
+```{r, packages}
 #| context: setup
 #| include: false
 
@@ -49,7 +49,7 @@ tidymodels_prefer()
 
 Not the...? Yes, the Titanic again....
 
-```{r}
+```{r, data}
 #| warning: false
 #| echo: true
 #| message: false
@@ -68,13 +68,13 @@ all <- train %>% bind_rows(test)
 
 A quick look.
 
-```{r}
+```{r, skim}
 train %>% skim() 
 ```
 
 ### Some Initial Wrangling
 
-```{r}
+```{r, wrangle_1}
 all_proc <- all %>% 
   mutate(title = str_extract(name,"(\\w)([a-z]+)(\\.)")) %>% 
   mutate(pax_type = case_when(
@@ -137,19 +137,19 @@ select(-c(title,ticket_preface))
 
 ### A bit more EDA
 
-```{r}
+```{r, EDA_1}
 all_proc %>% 
   select(-c(name,ticket,cabin,surname,train_test)) %>% 
   DataExplorer::plot_bar()
 ```
 
-```{r}
+```{r, data_explorer1}
 all_proc %>% DataExplorer::plot_histogram(ggtheme = theme_light() )
 ```
 
 ### Eyeballing Survival Graphs on Training Data
 
-```{r, fig.height=15}
+```{r, eye_ball_survival, fig.height=15}
 #| warning: false
 
 no_f <- all_proc %>%
@@ -178,7 +178,7 @@ wrap_plots(g_l, ncol = 2)
 
 ### Split Data back to Train/Test/Validation
 
-```{r}
+```{r, split}
 
 train_proc_adj_tbl <- all_proc %>% 
   filter(train_test =="train") %>% 
@@ -190,7 +190,7 @@ train_split <- initial_split(train_proc_adj_tbl,strata = survived)
 
 ## Recipe-Base
 
-```{r}
+```{r, recipe_base}
 recipe_base <- 
   recipe(survived ~ ., data = training(train_split)) %>% 
   update_role(passenger_id, name,surname,ticket,cabin,new_role = "ID") %>%
@@ -208,7 +208,7 @@ recipe_base
 
 ### Save Files
 
-```{r}
+```{r, save_rds}
 
 # write_rds(all_proc,"artifacts/all_proc.rds")
 # write_rds(train_split,"artifacts/train_split.rds")
@@ -226,7 +226,7 @@ recipe_base
 
 #### LR Model Spec
 
-```{r}
+```{r, LR_model}
 lr_spec <-  
   logistic_reg() %>% 
   set_engine("glm")
@@ -238,7 +238,7 @@ lr_spec
 
 #### LR Workflow
 
-```{r}
+```{r, LR_wflow}
 lr_wflow <- 
   workflow() %>% 
   add_model(lr_spec) %>% 
@@ -250,7 +250,7 @@ lr_wflow
 
 #### LR Fit Model
 
-```{r}
+```{r, LR_fit}
 
 lr_fit <- 
   lr_wflow %>% 
@@ -265,7 +265,7 @@ lr_final_metrics
 
 #### LR Predict
 
-```{r}
+```{r, LR_pred}
 
 
 lr_test_predictions <- lr_fit %>% collect_predictions()
@@ -276,7 +276,7 @@ lr_test_predictions
 
 ##### AUC Curve
 
-```{r}
+```{r, LR_auc}
 
 
 
@@ -288,7 +288,7 @@ lr_test_predictions %>%
 
 ##### Confusion Matrix
 
-```{r}
+```{r, LR_confuse}
 
 lr_test_predictions %>% 
   conf_mat(survived,.pred_class) %>% 
@@ -298,7 +298,7 @@ lr_test_predictions %>%
 
 #### LR Resampling
 
-```{r}
+```{r, LR_resample}
 #| message: false
 #| warning: false
 
@@ -323,14 +323,14 @@ lr_metrics_resample
 
 ```
 
-```{r}
+```{r, LR_preds}
 
 lr_assess_res <- collect_predictions(lr_fit_cv)
 lr_assess_res
 
 ```
 
-```{r}
+```{r, LR_fit2}
 set.seed(1234)
 lm_fit <- lr_wflow %>% fit(data = train_proc_adj_tbl)
 extract_recipe(lm_fit, estimated = TRUE)
@@ -1205,6 +1205,8 @@ head(all_predictions)
 
 ## All Metrics
 
+Ordered by descending ROC
+
 ```{r, all_metrics}
 
 all_metrics <- 
@@ -1213,13 +1215,20 @@ all_metrics <-
   bind_rows(rlr_final_metrics %>% mutate(model = "Reg_LR")) %>% 
   bind_rows(rf_final_metrics %>% mutate(model = "RF")) %>% 
   bind_rows(xgb_final_metrics %>% mutate(model = "xgb")) %>% 
-   bind_rows(xgb_usemodel_final_metrics %>% mutate(model = "xgb-usemodel")) 
+  bind_rows(xgb_usemodel_final_metrics %>% mutate(model = "xgb-usemodel")) 
+
+all_metrics_table <- all_metrics %>% 
+   pivot_wider(names_from = .metric,values_from = .estimate) %>% 
+   arrange(desc(roc_auc))
   
-head(all_metrics)
+all_metrics_table
 
 
 
 ```
+
+and a graph:
+
 
 ```{r, graph_all_metrics}
 
