@@ -210,13 +210,13 @@ recipe_base
 
 ```{r}
 
-write_rds(all_proc,"artifacts/all_proc.rds")
-write_rds(train_split,"artifacts/train_split.rds")
-write_rds(recipe_base,"artifacts/recipe_base.rds")
-
-all_proc <- read_rds("artifacts/all_proc.rds")
-train_split <- read_rds("artifacts/train_split.rds")
-recipe_base <- read_rds("artifacts/recipe_base.rds")
+# write_rds(all_proc,"artifacts/all_proc.rds")
+# write_rds(train_split,"artifacts/train_split.rds")
+# write_rds(recipe_base,"artifacts/recipe_base.rds")
+# 
+# all_proc <- read_rds("artifacts/all_proc.rds")
+# train_split <- read_rds("artifacts/train_split.rds")
+# recipe_base <- read_rds("artifacts/recipe_base.rds")
 
 ```
 
@@ -302,10 +302,14 @@ lr_test_predictions %>%
 #| message: false
 #| warning: false
 
-folds <- vfold_cv(training(train_split), strata = survived, v=10,repeats = 5)
+folds <- vfold_cv(training(train_split), strata = survived, v=5)
 #folds
 
 control <- control_resamples(save_pred = TRUE,save_workflow = TRUE)
+
+cores <- parallel::detectCores()
+set.seed(1234)
+doParallel::registerDoParallel(cores = cores)
 
 lr_fit_cv <- 
   lr_wflow %>% 
@@ -318,3 +322,960 @@ lr_metrics_resample <- collect_metrics(lr_fit_cv)
 lr_metrics_resample
 
 ```
+
+```{r}
+
+lr_assess_res <- collect_predictions(lr_fit_cv)
+lr_assess_res
+
+```
+
+```{r}
+set.seed(1234)
+lm_fit <- lr_wflow %>% fit(data = train_proc_adj_tbl)
+extract_recipe(lm_fit, estimated = TRUE)
+
+```
+
+## Regularised Logistic Regression - GLMNET
+
+### RLR Model Spec
+
+```{r, rlr_model}
+
+rlr_model <- 
+  logistic_reg(penalty = tune(), mixture = tune()) %>% 
+  set_engine("glmnet")
+rlr_model
+
+```
+
+### RLR Parameter Tuning
+
+```{r, rlr_tuning}
+
+rlr_grid <- grid_latin_hypercube(
+  penalty(),
+  mixture(),
+  size = 30
+)
+rlr_grid %>% tidy()
+
+```
+
+### RLR Workflow
+
+```{r, rlr_wflow}
+
+rlr_wflow <- 
+  workflow() %>% 
+  add_model(rlr_model) %>% 
+  add_recipe(recipe_base)
+rlr_wflow
+
+
+```
+
+### RLR Hyper-parameter Tuning
+
+```{r, rlr_cvs}
+
+# rlr_folds <- vfold_cv(training(train_split), strata = survived, v=10,repeats = 5)
+# rlr_folds %>% tidy()
+
+doParallel::registerDoParallel(cores = cores)
+
+set.seed(234)
+rlr_tuning_result <- tune_grid(
+  rlr_wflow,
+  resamples = folds,
+  grid      = rlr_grid,
+  control   = control_grid(save_pred = TRUE, save_workflow = TRUE)
+)
+
+rlr_tuning_metrics <- collect_metrics(rlr_tuning_result)
+head(rlr_tuning_metrics)
+
+```
+
+Review hyper-parameter tuning results and select best
+
+```{r, rlr_tune}
+
+rlr_tuning_result %>%
+  collect_metrics() %>%
+  filter(.metric == "accuracy") %>%
+  select(mean, penalty,mixture) %>%
+  pivot_longer(penalty:mixture,
+               values_to = "value",
+               names_to = "parameter"
+  ) %>%
+  ggplot(aes(value, mean, color = parameter)) +
+  geom_point(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~parameter, scales = "free_x") +
+  labs(x = NULL, y = "AUC")
+
+show_best(rlr_tuning_result, "accuracy")
+
+best_rlr_auc <- select_best(rlr_tuning_result, "accuracy")
+best_rlr_auc
+
+```
+
+### RLR Predict
+
+```{r, rlr_predict1}
+
+rlr_final_wflow <- finalize_workflow(
+  rlr_wflow,
+  best_rlr_auc
+)
+
+rlr_final_wflow
+
+
+rlr_final_wflow %>%
+  last_fit(train_split) %>%
+  extract_fit_parsnip() %>%
+  vip(geom = "col")
+
+```
+
+```{r, rlr_predict2}
+
+rlr_final_fit <- rlr_final_wflow %>%
+  last_fit(train_split)
+
+rlr_final_metrics <- collect_metrics(rlr_final_fit)
+rlr_final_metrics
+
+rlr_test_predictions <- rlr_final_fit %>% collect_predictions()
+rlr_test_predictions
+
+# rlr_pred <- predict(rlr_final_fit,train_2 )%>% 
+#   bind_cols(predict(rlr_final_fit, train_2,type="prob")) %>% 
+#   bind_cols(train_2 %>% select(survived))
+# 
+# rlr_pred %>% 
+#   roc_auc(truth = survived, .pred_1, event_level = "second")
+# 
+# rlr_pred %>% 
+#   roc_curve(truth = survived, .pred_1,event_level="second") %>% 
+#   autoplot()
+# 
+# 
+# rlr_metrics <- rlr_pred %>% 
+# metrics(truth = survived, estimate = .pred_class) %>% 
+#   filter(.metric == "accuracy")
+# rlr_metrics
+# survive_rlr_pred <- 
+#   augment(survive_lr_fit, train_2)
+# survive_rlr_pred
+
+```
+
+### RLR Confusion Matrix
+
+```{r, rlr_confusion_matrix}
+
+rlr_test_predictions %>% conf_mat(survived,.pred_class) %>% 
+  autoplot(type = "heatmap")
+
+
+
+```
+
+## Random Forest
+
+### RF Model Spec - Ranger
+
+```{r, rf_model}
+
+rf_model <- 
+  rand_forest(trees = 1000) %>% 
+  set_engine("ranger") %>% 
+  set_mode("classification")
+
+```
+
+### RF Workflow
+
+```{r, rf_wflow}
+
+rf_wflow <- 
+  workflow() %>% 
+  add_model(rf_model) %>% 
+  add_recipe(recipe_base)
+
+```
+
+### RF Fit Model
+
+```{r, rf_fit}
+
+rf_fit <- 
+  rf_wflow %>% 
+  last_fit(train_split)
+
+rf_final_metrics <- collect_metrics(rf_fit)
+rf_final_metrics
+```
+
+### RF Predict
+
+```{r, rf_predict}
+
+rf_final_fit <- rf_wflow %>% fit(testing(train_split))
+class(rf_final_fit)
+
+ rf_test_predictions <- 
+  predict(rf_final_fit, new_data = testing(train_split)) %>% 
+   bind_cols(predict(rf_final_fit, testing(train_split),type = "prob")) %>% 
+   bind_cols(testing(train_split) %>% select(survived))
+
+ 
+ head(rf_test_predictions)
+ 
+ 
+```
+
+### RF Performance on Training Set
+
+```{r, rf_perf}
+
+rf_test_predictions %>% 
+  roc_auc(truth = survived, .pred_1,event_level = "second")
+
+rf_metrics_accuracy <- rf_test_predictions %>% 
+  metrics(truth = survived, estimate = .pred_class) %>% 
+  filter(.metric == "accuracy")
+rf_metrics_accuracy
+
+rf_test_predictions %>% 
+  roc_curve(truth = survived, .pred_1,event_level = "second") %>% 
+  autoplot()
+```
+
+### RF Confusion Matrix
+
+```{r, rf_confusion_matrix}
+
+rf_test_predictions %>% conf_mat(survived,.pred_class) %>% 
+  autoplot(type = "heatmap")
+
+```
+
+### RF Resampling
+
+```{r, rf_resample}
+#| message: false
+#| warning: false
+
+#folds <- vfold_cv(training(train_split), strata = survived, v=5)
+#folds
+
+control <- control_resamples(save_pred = TRUE,save_workflow = TRUE)
+
+cores <- parallel::detectCores()
+set.seed(1234)
+doParallel::registerDoParallel(cores = cores)
+
+rf_fit_cv <- 
+  rf_wflow %>% 
+  fit_resamples(folds, control = control)
+
+#show_best(lr_fit_cv,metric= "accuracy")
+
+#lr_fit_cv
+rf_metrics_resample <- collect_metrics(rf_fit_cv)
+rf_metrics_resample
+
+```
+
+
+## XG Boost - Usemodel
+
+### XGB - Usemodel Library specs
+
+```{r}
+
+library(usemodels)
+
+use_xgboost(survived ~ .,
+            data=training(train_split),
+            verbose = TRUE
+  
+)
+
+
+```
+
+### XGB - Parameters
+
+This grid is used for both versions of XG Boost.
+
+```{r, xgb_grid}
+
+xgb_grid <- grid_latin_hypercube(
+  tree_depth(),
+  min_n(),
+  trees(),
+  loss_reduction(),
+  sample_size = sample_prop(),
+  finalize(mtry(), training(train_split)),
+  learn_rate(),
+  size = 30
+)
+
+head(xgb_grid)
+
+
+
+```
+
+### XGB - Usemodel Code
+
+
+
+```{r, usemodel_load}
+library(usemodels)
+
+use_xgboost(survived ~ .,
+            data=training(train_split),
+            verbose = TRUE
+  
+)
+
+
+```
+
+
+
+```{r, usemodel_scripts}
+
+xgboost_usemodel_recipe <- 
+  recipe(formula = survived ~ ., data = training(train_split)) %>% 
+  step_novel(all_nominal_predictors()) %>% 
+  ## This model requires the predictors to be numeric. The most common 
+  ## method to convert qualitative predictors to numeric is to create 
+  ## binary indicator variables (aka dummy variables) from these 
+  ## predictors. However, for this model, binary indicator variables can be 
+  ## made for each of the levels of the factors (known as 'one-hot 
+  ## encoding'). 
+  step_dummy(all_nominal_predictors(), one_hot = TRUE) %>% 
+  step_zv(all_predictors()) 
+
+xgboost_usemodel_model <- 
+  boost_tree(trees = tune(), mtry = tune(),min_n = tune(), tree_depth = tune(), learn_rate = tune(), 
+    loss_reduction = tune(), sample_size = tune()) %>% 
+  set_mode("classification") %>% 
+  set_engine("xgboost") 
+
+xgboost_usemodel_wflow <- 
+  workflow() %>% 
+  add_recipe(xgboost_usemodel_recipe) %>% 
+  add_model(xgboost_usemodel_model) 
+
+doParallel::registerDoParallel(cores = cores)
+
+set.seed(234)
+xgboost_usemodel_tune <-
+  tune_grid(xgboost_usemodel_wflow, resamples = folds, grid = xgb_grid)
+
+
+
+
+```
+
+
+### XGB - Usemodel Best Parameter Settings 
+
+```{r, xgb_usemodel_para_sel}
+
+xgb_tuning_metrics_usemodel <- collect_metrics(xgboost_usemodel_tune)
+xgb_tuning_metrics_usemodel
+
+xgboost_usemodel_tune %>%
+  collect_metrics() %>%
+  filter(.metric == "roc_auc") %>%
+  select(mean, mtry:sample_size) %>%
+  pivot_longer(mtry:sample_size,
+               values_to = "value",
+               names_to = "parameter"
+  ) %>%
+  ggplot(aes(value, mean, color = parameter)) +
+  geom_point(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~parameter, scales = "free_x") +
+  labs(x = NULL, y = "AUC")
+
+```
+
+
+
+Now select best from above
+
+
+
+```{r, xgb_usemodel_select_paras}
+
+show_best(xgboost_usemodel_tune, "roc_auc")
+
+xgb_usemodel_best_params <- select_best(xgboost_usemodel_tune, "roc_auc")
+xgb_usemodel_best_params
+
+xgb_usemodel_final_wflow <- finalize_workflow(
+  xgboost_usemodel_wflow,
+  xgb_usemodel_best_params
+)
+
+xgb_usemodel_final_wflow
+
+
+```
+### XGB - Usemodel Parameter Ranking - VIP
+
+```{r, xgb_usemodel_vip}
+
+xgb_usemodel_final_wflow %>%
+  fit(data = training(train_split)) %>%
+  extract_fit_parsnip() %>%
+  vip(geom = "point")
+```
+
+### XGB - Usemodel Performance
+
+#### XGB - Usemodel Accuracy Measured on Test Set
+
+```{r, xgb_usemodel_final_metrics}
+set.seed(234)
+xgb_usemodel_final_res <- last_fit(xgb_usemodel_final_wflow, train_split)
+xgb_usemodel_final_res
+xgb_usemodel_final_metrics <- collect_metrics(xgb_usemodel_final_res)
+xgb_usemodel_final_metrics
+
+```
+
+
+#### XGB - Usemodel AUC on Test Set (within train)
+
+```{r, xgb_usemodel_auc}
+
+xgb_usemodel_final_res %>%
+  collect_predictions() %>%
+  roc_curve( truth = survived,.pred_1, event_level = "second") %>%
+  ggplot(aes(x = 1-specificity, y = sensitivity)) +
+  geom_line(size = 1.5, color = "midnightblue") +
+  geom_abline(
+    lty = 2, alpha = 0.5,
+    color = "gray50",
+    size = 1.2
+  )
+
+```
+
+```{r, }
+
+xgb_usemodel_test_predictions <- collect_predictions(xgb_usemodel_final_res)
+head(xgb_usemodel_test_predictions)
+
+```
+
+### XGB - Usemodel Confusion Matrix
+
+```{r}
+
+
+xgb_usemodel_test_predictions %>% conf_mat(survived,.pred_class) %>% 
+  autoplot(type = "heatmap")
+
+
+```
+
+
+
+
+## XG Boost - Base Recipe
+
+### XGB Model Spec
+
+```{r, xgb_model}
+
+xgb_model <- 
+  boost_tree(
+    trees = tune(),
+    tree_depth = tune(),
+    min_n = tune(),
+    loss_reduction = tune(),
+    sample_size = tune(),
+    mtry = tune(),
+    learn_rate = tune()) %>% 
+  set_engine("xgboost") %>% 
+  set_mode("classification")
+
+xgb_model
+
+```
+
+
+
+### XGB Workflow
+
+```{r, xgb_wflow}
+
+xgb_wflow <- 
+  workflow() %>% 
+  add_model(xgb_model) %>% 
+  add_recipe(recipe_base)
+
+
+
+```
+
+
+
+
+### XGB Hyper-Parameter Tuning
+
+```{r}
+
+# xgb_folds <- vfold_cv(training(train_split), strata = survived)
+# xgb_folds
+
+
+doParallel::registerDoParallel(cores = cores)
+
+set.seed(234)
+xgb_tuning_result <- tune_grid(
+  xgb_wflow,
+  resamples = folds,
+  grid      = xgb_grid,
+  control  = control_grid(save_pred = TRUE,save_workflow = TRUE)
+)
+xgb_tuning_result
+```
+
+```{r}
+
+xgb_tuning_metrics <- collect_metrics(xgb_tuning_result)
+xgb_tuning_metrics
+
+xgb_tuning_result %>%
+  collect_metrics() %>%
+  filter(.metric == "roc_auc") %>%
+  select(mean, mtry:sample_size) %>%
+  pivot_longer(mtry:sample_size,
+               values_to = "value",
+               names_to = "parameter"
+  ) %>%
+  ggplot(aes(value, mean, color = parameter)) +
+  geom_point(alpha = 0.8, show.legend = FALSE) +
+  facet_wrap(~parameter, scales = "free_x") +
+  labs(x = NULL, y = "AUC")
+```
+
+#### XGB Best Parameters then Finalise Workflow
+
+```{r}
+
+show_best(xgb_tuning_result, "roc_auc")
+
+xgb_best_params <- select_best(xgb_tuning_result, "roc_auc")
+xgb_best_params
+
+xgb_final_wflow <- finalize_workflow(
+  xgb_wflow,
+  xgb_best_params
+)
+
+xgb_final_wflow
+
+```
+
+
+```{r}
+
+xgb_final_wflow %>%
+  fit(data = training(train_split)) %>%
+  extract_fit_parsnip() %>%
+  vip(geom = "point")
+```
+
+### XGB Performance on Training Test Set
+
+#### XGB Accuracy Measured on Test Set
+
+```{r}
+
+xgb_final_res <- last_fit(xgb_final_wflow, train_split)
+xgb_final_res
+xgb_final_metrics <- collect_metrics(xgb_final_res)
+xgb_final_metrics
+
+```
+
+#### XGB AUC on Test Set (within train)
+
+```{r}
+
+xgb_final_res %>%
+  collect_predictions() %>%
+  roc_curve( truth = survived,.pred_1, event_level = "second") %>%
+  ggplot(aes(x = 1-specificity, y = sensitivity)) +
+  geom_line(size = 1.5, color = "midnightblue") +
+  geom_abline(
+    lty = 2, alpha = 0.5,
+    color = "gray50",
+    size = 1.2
+  )
+
+```
+
+```{r}
+
+xgb_test_predictions <- collect_predictions(xgb_final_res)
+head(xgb_test_predictions)
+
+```
+
+### XGB Confusion Matrix
+
+```{r}
+
+
+xgb_test_predictions %>% conf_mat(survived,.pred_class) %>% 
+  autoplot(type = "heatmap")
+
+
+```
+
+## Neural Net
+
+### NN Model
+
+```{r, nn_model}
+
+nnet_model <- 
+   mlp(hidden_units = tune(), penalty = tune(), epochs = tune()) %>% 
+   set_engine("nnet", MaxNWts = 2600) %>% 
+   set_mode("classification")
+
+nnet_model %>% translate()
+
+```
+
+### NN Workflow
+
+```{r, nn_wflow}
+
+nnet_wflow <- workflow() %>% 
+  add_model(nnet_model) %>% 
+  add_recipe(recipe_base)
+  
+
+```
+
+### NN Parameters
+
+```{r, nn_params}
+
+nnet_grid <- grid_latin_hypercube(
+  hidden_units(),
+  penalty (),
+  epochs ()
+)
+
+head(nnet_grid) 
+
+```
+
+### NN Hyper-Parameter Tuning
+
+```{r, nn_tuning}
+
+nnet_folds <- vfold_cv(training(train_split), strata = survived)
+nnet_folds
+
+
+doParallel::registerDoParallel(cores = cores)
+
+set.seed(234)
+nnet_tuning_result <- tune_grid(
+  nnet_wflow,
+  resamples = folds,
+  grid      = nnet_grid,
+  control   = control_grid(save_pred = TRUE,save_workflow = TRUE)
+)
+nnet_tuning_result
+```
+
+### NN Best Parameters and Finalise Workflow
+
+```{r, nn_best_params}
+
+show_best(nnet_tuning_result, "accuracy")
+nn_best_params <- select_best(nnet_tuning_result, "accuracy")
+
+nnet_best_auc <- select_best(xgb_tuning_result, "accuracy")
+nnet_best_auc
+
+nnet_final_wflow <- finalize_workflow(
+  nnet_wflow,
+  nn_best_params
+)
+
+nnet_final_wflow
+
+```
+
+```{r, nn_final_train}
+
+nnet_final_wflow %>%
+  fit(data = training(train_split)) %>%
+  extract_fit_parsnip() %>%
+  vip(geom = "point")
+
+```
+
+### NN Accuracy - Train/Test Set
+
+```{r}
+
+nnet_tuning_metrics <- collect_metrics(nnet_tuning_result)
+nnet_tuning_metrics
+
+nnet_final_res <- last_fit(nnet_final_wflow, train_split)
+nnet_final_res
+nnet_final_metrics <- collect_metrics(nnet_final_res)
+nnet_final_metrics
+
+
+```
+
+### NN AUC
+
+```{r}
+
+nnet_final_res %>%
+  collect_predictions() %>%
+  roc_curve( truth = survived,.pred_1, event_level = "second") %>%
+  ggplot(aes(x = 1-specificity, y = sensitivity)) +
+  geom_line(size = 1.5, color = "midnightblue") +
+  geom_abline(
+    lty = 2, alpha = 0.5,
+    color = "gray50",
+    size = 1.2
+  )
+
+```
+
+### NN Predictions on Train/Test Set
+
+```{r}
+
+nnet_test_predictions <- nnet_final_res %>%
+  collect_predictions() 
+head(nnet_test_predictions)
+```
+
+### NN Confusion Matrix
+
+```{r, NN_confusion_matrix}
+
+nnet_test_predictions %>% conf_mat(survived,.pred_class) %>% 
+  autoplot(type = "heatmap")
+
+```
+
+## Stack Models - not working
+
+### Stack Recipe
+
+```{r, stack_recipe}
+
+recipe_stack <- 
+  recipe(survived ~ ., data = training(train_split)) %>% 
+  update_role(passenger_id, name,surname,ticket,cabin,new_role = "ID") %>% 
+  step_impute_knn(all_numeric_predictors()) %>% 
+  step_dummy(all_nominal_predictors()) %>%
+  step_factor2string(all_nominal_predictors()) %>% 
+  step_zv(all_predictors()) %>% 
+  step_pca()
+recipe_stack
+
+recipe_stack_trained <- prep(recipe_base)
+recipe_stack_trained
+
+
+
+```
+
+### Stack Controls
+
+```{r, stack_controls}
+
+
+stack_ctrl <- control_resamples(save_pred = TRUE, save_workflow = TRUE)
+#stack_folds <- vfold_cv(training(train_split), v=10,strata = "survived")
+
+library(stacks)
+
+model_stack <-
+  stacks() %>%
+  #add_candidates(lr_wflow) %>%
+  #add_candidates(rf_wflow) %>%
+  add_candidates(nnet_tuning_result) %>%
+  add_candidates(rlr_tuning_result) %>% 
+  add_candidates(xgb_tuning_result)
+
+```
+
+### Stack LR
+
+```{r, stack_LR}
+
+stack_lr_wflow <- 
+  workflow() %>% 
+  add_model(lr_spec) %>% 
+  add_recipe(recipe_stack)
+lr_wflow
+
+stack_lr_res <- 
+  lr_wflow %>% 
+  tune_grid(folds,control = stack_ctrl)
+stack_lr_res
+
+```
+
+```{r}
+
+# autoplot(stack_lr_res) + 
+#   scale_color_viridis_d(direction = -1) + 
+#   theme(legend.position = "top")
+
+
+```
+
+
+### Stack RLR
+
+```{r, stack_rlr}
+
+# stack_rlr_wflow <- 
+#   workflow() %>% 
+#   add_model(rlr_model) %>% 
+#   add_recipe(recipe_stack)
+# stack_rlr_wflow
+# 
+# stack_rlr_res <- 
+#   stack_rlr_wflow %>% 
+#   fit_resamples(folds,control = stack_ctrl)
+# stack_rlr_res
+
+```
+
+### Initialise Stack
+
+```{r, stack_init}
+stack_models <-
+  stacks()
+stack_models
+
+stack_models %>% 
+add_candidates(stack_lr_res)
+
+```
+
+## Join Model Prediction Data
+
+```{r, all_predictions}
+
+all_predictions <- 
+  lr_test_predictions %>% mutate(model = "LR") %>% 
+  bind_rows(nnet_test_predictions %>% mutate(model = "NNet")) %>% 
+  bind_rows(rlr_test_predictions %>% mutate(model = "Reg_LR")) %>% 
+  bind_rows(rf_test_predictions %>% mutate(model = "RF")) %>% 
+  bind_rows(xgb_test_predictions %>% mutate(model = "xgb")) %>% 
+  bind_rows(xgb_usemodel_test_predictions %>% mutate(model = "xgb_usemodel")) 
+  
+head(all_predictions)
+
+
+
+```
+
+## All Metrics
+
+```{r, all_metrics}
+
+all_metrics <- 
+  lr_final_metrics %>% mutate(model = "LR") %>% 
+  bind_rows(nnet_final_metrics %>% mutate(model = "NNet")) %>% 
+  bind_rows(rlr_final_metrics %>% mutate(model = "Reg_LR")) %>% 
+  bind_rows(rf_final_metrics %>% mutate(model = "RF")) %>% 
+  bind_rows(xgb_final_metrics %>% mutate(model = "xgb")) %>% 
+   bind_rows(xgb_usemodel_final_metrics %>% mutate(model = "xgb-usemodel")) 
+  
+head(all_metrics)
+
+
+
+```
+
+```{r, graph_all_metrics}
+
+all_metrics %>% 
+  filter(.metric == "roc_auc") %>% 
+  select(model, roc = .estimate) %>% 
+  ggplot(aes(model, roc)) +
+  geom_col()
+
+```
+
+## Ensemble - Workflow Sets - not working
+
+```{r, workflow_set}
+
+# no_pre_proc <- 
+#    workflow_set(
+#       preproc = list(base = recipe_base), 
+#       models = list(RF             = lr_model, 
+#                     Regularised_LR = rlr_model, 
+#                     Rand_Forest    = rf_model, 
+#                     boosting       = xgb_model),
+#       cross = TRUE
+#    )
+# no_pre_proc
+# 
+# add_cand
+
+
+```
+
+# Final Submission
+
+## Predict on Test set
+
+```{r, predict_test}
+
+
+final_test_preds <- 
+  nnet_final_wflow %>% 
+  fit(train_proc_adj_tbl) %>% 
+  predict(new_data=testing(train_split)) %>% 
+  bind_cols(testing(train_split)) %>% 
+  select(PassengerID = passenger_id,Survived = .pred_class)
+
+#colnames(test_2)
+
+```
+
+## Write Submission File
+
+```{r, write_csv}
+
+#write_csv(final_test_preds,"titanic_sumission.csv")
+
+```
+
+
+
