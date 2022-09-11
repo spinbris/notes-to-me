@@ -183,8 +183,13 @@ wrap_plots(g_l, ncol = 2)
 train_proc_adj_tbl <- all_proc %>% 
   filter(train_test =="train") %>% 
   select(-c(survival))
+
+
   
 train_split <- initial_split(train_proc_adj_tbl,strata = survived)
+
+train_train <- training(train_split)
+train_test <- testing(train_split)
 
 ```
 
@@ -192,7 +197,7 @@ train_split <- initial_split(train_proc_adj_tbl,strata = survived)
 
 ```{r, recipe_base}
 recipe_base <- 
-  recipe(survived ~ ., data = training(train_split)) %>% 
+  recipe(survived ~ ., data = train_train) %>% 
   update_role(passenger_id, name,surname,ticket,cabin,new_role = "ID") %>%
   step_impute_knn(all_numeric_predictors()) %>% 
   step_dummy(all_nominal_predictors()) %>%
@@ -210,9 +215,9 @@ recipe_base
 
 ```{r, save_rds}
 
-# write_rds(all_proc,"artifacts/all_proc.rds")
-# write_rds(train_split,"artifacts/train_split.rds")
-# write_rds(recipe_base,"artifacts/recipe_base.rds")
+write_rds(all_proc,"artifacts/all_proc.rds")
+write_rds(train_split,"artifacts/train_split.rds")
+write_rds(recipe_base,"artifacts/recipe_base.rds")
 # 
 # all_proc <- read_rds("artifacts/all_proc.rds")
 # train_split <- read_rds("artifacts/train_split.rds")
@@ -268,7 +273,9 @@ lr_final_metrics
 ```{r, LR_pred}
 
 
-lr_test_predictions <- lr_fit %>% collect_predictions()
+lr_test_predictions <- lr_fit %>% collect_predictions() %>% 
+  rename(survived_pred = survived) %>% 
+  bind_cols(train_test)
 lr_test_predictions
 ```
 
@@ -302,7 +309,7 @@ lr_test_predictions %>%
 #| message: false
 #| warning: false
 
-folds <- vfold_cv(training(train_split), strata = survived, v=5)
+folds <- vfold_cv(train_train, strata = survived, v=5)
 #folds
 
 control <- control_resamples(save_pred = TRUE,save_workflow = TRUE)
@@ -323,10 +330,15 @@ lr_metrics_resample
 
 ```
 
-```{r, LR_preds}
+Following still to be fixed!
 
-lr_assess_res <- collect_predictions(lr_fit_cv)
-lr_assess_res
+```{r, LR_preds}
+#lr_param <- extract_parameter_set_dials(lr_spec)
+
+lr_resample_test_predictions <- collect_predictions(lr_fit_cv) %>% 
+  rename(survived_pred = survived) 
+#  bind_cols(testing(train_split))
+lr_resample_test_predictions
 
 ```
 
@@ -354,12 +366,15 @@ rlr_model
 
 ```{r, rlr_tuning}
 
+
+rlr_param <- extract_parameter_set_dials(rlr_model)
+
 rlr_grid <- grid_latin_hypercube(
   penalty(),
   mixture(),
   size = 30
 )
-rlr_grid %>% tidy()
+head(rlr_grid) %>% knitr::kable(digits =3)
 
 ```
 
@@ -394,7 +409,7 @@ rlr_tuning_result <- tune_grid(
 )
 
 rlr_tuning_metrics <- collect_metrics(rlr_tuning_result)
-head(rlr_tuning_metrics)
+head(rlr_tuning_metrics) %>% knitr::kable(digits = 3)
 
 ```
 
@@ -447,10 +462,15 @@ rlr_final_fit <- rlr_final_wflow %>%
   last_fit(train_split)
 
 rlr_final_metrics <- collect_metrics(rlr_final_fit)
-rlr_final_metrics
+rlr_final_metrics %>% knitr::kable()
 
 rlr_test_predictions <- rlr_final_fit %>% collect_predictions()
-rlr_test_predictions
+rlr_test_predictions_all <- rlr_test_predictions %>% 
+  bind_cols(train_test %>% select(-survived)) 
+
+
+
+glimpse(rlr_test_predictions_all)
 
 # rlr_pred <- predict(rlr_final_fit,train_2 )%>% 
 #   bind_cols(predict(rlr_final_fit, train_2,type="prob")) %>% 
@@ -525,13 +545,13 @@ rf_final_metrics
 
 ```{r, rf_predict}
 
-rf_final_fit <- rf_wflow %>% fit(testing(train_split))
+rf_final_fit <- rf_wflow %>% fit(train_test)
 class(rf_final_fit)
 
  rf_test_predictions <- 
-  predict(rf_final_fit, new_data = testing(train_split)) %>% 
-   bind_cols(predict(rf_final_fit, testing(train_split),type = "prob")) %>% 
-   bind_cols(testing(train_split) %>% select(survived))
+  predict(rf_final_fit, new_data = train_test) %>% 
+   bind_cols(predict(rf_final_fit, train_test,type = "prob")) %>% 
+   bind_cols(train_test %>% select(survived))
 
  
  head(rf_test_predictions)
@@ -602,7 +622,7 @@ rf_metrics_resample
 library(usemodels)
 
 use_xgboost(survived ~ .,
-            data=training(train_split),
+            data=train_train,
             verbose = TRUE
   
 )
@@ -622,7 +642,7 @@ xgb_grid <- grid_latin_hypercube(
   trees(),
   loss_reduction(),
   sample_size = sample_prop(),
-  finalize(mtry(), training(train_split)),
+  finalize(mtry(), train_train),
   learn_rate(),
   size = 30
 )
@@ -633,28 +653,13 @@ head(xgb_grid)
 
 ```
 
-### XGB - Usemodel Code
-
-
-
-```{r, usemodel_load}
-library(usemodels)
-
-use_xgboost(survived ~ .,
-            data=training(train_split),
-            verbose = TRUE
-  
-)
-
-
-```
 
 
 
 ```{r, usemodel_scripts}
 
 xgboost_usemodel_recipe <- 
-  recipe(formula = survived ~ ., data = training(train_split)) %>% 
+  recipe(formula = survived ~ ., data = train_train) %>% 
   step_novel(all_nominal_predictors()) %>% 
   ## This model requires the predictors to be numeric. The most common 
   ## method to convert qualitative predictors to numeric is to create 
@@ -697,7 +702,7 @@ xgb_tuning_metrics_usemodel
 
 xgboost_usemodel_tune %>%
   collect_metrics() %>%
-  filter(.metric == "roc_auc") %>%
+  filter(.metric == "accuracy") %>%
   select(mean, mtry:sample_size) %>%
   pivot_longer(mtry:sample_size,
                values_to = "value",
@@ -706,7 +711,7 @@ xgboost_usemodel_tune %>%
   ggplot(aes(value, mean, color = parameter)) +
   geom_point(alpha = 0.8, show.legend = FALSE) +
   facet_wrap(~parameter, scales = "free_x") +
-  labs(x = NULL, y = "AUC")
+  labs(x = NULL, y = "Accuracy")
 
 ```
 
@@ -718,9 +723,9 @@ Now select best from above
 
 ```{r, xgb_usemodel_select_paras}
 
-show_best(xgboost_usemodel_tune, "roc_auc")
+show_best(xgboost_usemodel_tune, "accuracy")
 
-xgb_usemodel_best_params <- select_best(xgboost_usemodel_tune, "roc_auc")
+xgb_usemodel_best_params <- select_best(xgboost_usemodel_tune, "accuracy")
 xgb_usemodel_best_params
 
 xgb_usemodel_final_wflow <- finalize_workflow(
@@ -737,7 +742,7 @@ xgb_usemodel_final_wflow
 ```{r, xgb_usemodel_vip}
 
 xgb_usemodel_final_wflow %>%
-  fit(data = training(train_split)) %>%
+  fit(data = train_train) %>%
   extract_fit_parsnip() %>%
   vip(geom = "point")
 ```
@@ -861,7 +866,7 @@ xgb_tuning_metrics
 
 xgb_tuning_result %>%
   collect_metrics() %>%
-  filter(.metric == "roc_auc") %>%
+  filter(.metric == "accuracy") %>%
   select(mean, mtry:sample_size) %>%
   pivot_longer(mtry:sample_size,
                values_to = "value",
@@ -877,9 +882,9 @@ xgb_tuning_result %>%
 
 ```{r}
 
-show_best(xgb_tuning_result, "roc_auc")
+show_best(xgb_tuning_result, "accuracy")
 
-xgb_best_params <- select_best(xgb_tuning_result, "roc_auc")
+xgb_best_params <- select_best(xgb_tuning_result, "accuracy")
 xgb_best_params
 
 xgb_final_wflow <- finalize_workflow(
@@ -895,7 +900,7 @@ xgb_final_wflow
 ```{r}
 
 xgb_final_wflow %>%
-  fit(data = training(train_split)) %>%
+  fit(data = train_train) %>%
   extract_fit_parsnip() %>%
   vip(geom = "point")
 ```
@@ -992,7 +997,7 @@ head(nnet_grid)
 
 ```{r, nn_tuning}
 
-nnet_folds <- vfold_cv(training(train_split), strata = survived)
+nnet_folds <- vfold_cv(train_train, strata = survived)
 nnet_folds
 
 
@@ -1030,7 +1035,7 @@ nnet_final_wflow
 ```{r, nn_final_train}
 
 nnet_final_wflow %>%
-  fit(data = training(train_split)) %>%
+  fit(data = train_train) %>%
   extract_fit_parsnip() %>%
   vip(geom = "point")
 
@@ -1086,14 +1091,14 @@ nnet_test_predictions %>% conf_mat(survived,.pred_class) %>%
 
 ```
 
-## Stack Models - not working
+## Stack Models
 
 ### Stack Recipe
 
 ```{r, stack_recipe}
 
 recipe_stack <- 
-  recipe(survived ~ ., data = training(train_split)) %>% 
+  recipe(survived ~ ., data = train_train) %>% 
   update_role(passenger_id, name,surname,ticket,cabin,new_role = "ID") %>% 
   step_impute_knn(all_numeric_predictors()) %>% 
   step_dummy(all_nominal_predictors()) %>%
@@ -1129,61 +1134,73 @@ model_stack <-
 
 ```
 
-### Stack LR
-
-```{r, stack_LR}
-
-stack_lr_wflow <- 
-  workflow() %>% 
-  add_model(lr_spec) %>% 
-  add_recipe(recipe_stack)
-lr_wflow
-
-stack_lr_res <- 
-  lr_wflow %>% 
-  tune_grid(folds,control = stack_ctrl)
-stack_lr_res
-
-```
+### Stack Blend
 
 ```{r}
 
-# autoplot(stack_lr_res) + 
-#   scale_color_viridis_d(direction = -1) + 
-#   theme(legend.position = "top")
+set.seed(123)
+ensemble <- blend_predictions(model_stack,penalty = 10^seq(-2, -0.5, length = 20))
+autoplot(ensemble)
 
 
 ```
 
+```{r,ensemble_table}
 
-### Stack RLR
+ensemble 
 
-```{r, stack_rlr}
+```
 
-# stack_rlr_wflow <- 
-#   workflow() %>% 
-#   add_model(rlr_model) %>% 
-#   add_recipe(recipe_stack)
-# stack_rlr_wflow
+### Stack Weights
+
+```{r}
+
+autoplot(ensemble, "weights") +
+  geom_text(aes(x = weight + 0.01, label = model), hjust = 0) + 
+  theme(legend.position = "none") 
+
+
+```
+
+### Fit Member Models
+
+```{r, fit_ensemble}
+
+ensemble <- fit_members(ensemble)
+collect_parameters(ensemble,"xgb_tuning_result")
+
+```
+
+
+
+### Stack Predict
+
+```{r}
+
+#ensemble_metrics <- metric_set(roc_auc,accuracy)
+
+ensemble_test_predictions <- 
+  predict(ensemble,train_test) %>% 
+  bind_cols(train_test) 
+
+
+# ensemble_test_predictions <- ensemble_test_predictions %>% 
+#   mutate(.pred_class=as.numeric(.pred_class)) %>% 
+#    mutate(survived =as.numeric(survived)) 
 # 
-# stack_rlr_res <- 
-#   stack_rlr_wflow %>% 
-#   fit_resamples(folds,control = stack_ctrl)
-# stack_rlr_res
+# ensemble_test_predictions <- ensemble_test_predictions %>% 
+#   mutate(roc = roc_auc(truth=survived, estimate = .pred_class))
+
+
+
+glimpse(ensemble_test_predictions)
 
 ```
 
-### Initialise Stack
 
-```{r, stack_init}
-stack_models <-
-  stacks()
-stack_models
 
-stack_models %>% 
-add_candidates(stack_lr_res)
 
-```
+
 
 ## Join Model Prediction Data
 
@@ -1195,9 +1212,10 @@ all_predictions <-
   bind_rows(rlr_test_predictions %>% mutate(model = "Reg_LR")) %>% 
   bind_rows(rf_test_predictions %>% mutate(model = "RF")) %>% 
   bind_rows(xgb_test_predictions %>% mutate(model = "xgb")) %>% 
-  bind_rows(xgb_usemodel_test_predictions %>% mutate(model = "xgb_usemodel")) 
+  bind_rows(xgb_usemodel_test_predictions %>% mutate(model = "xgb_usemodel")) %>% 
+  bind_rows(ensemble_test_predictions %>% mutate(model = "ensemble"))
   
-head(all_predictions)
+all_predictions %>% knitr::kable()
 
 
 
@@ -1205,7 +1223,7 @@ head(all_predictions)
 
 ## All Metrics
 
-Ordered by descending ROC
+Ordered by descending Accuracy metric
 
 ```{r, all_metrics}
 
@@ -1219,9 +1237,11 @@ all_metrics <-
 
 all_metrics_table <- all_metrics %>% 
    pivot_wider(names_from = .metric,values_from = .estimate) %>% 
-   arrange(desc(roc_auc))
+   arrange(desc(accuracy))
   
-all_metrics_table
+write_rds(all_metrics,"artifacts/all_metrics.rds")
+
+all_metrics_table %>% knitr::kable(digits=3)
 
 
 
@@ -1233,32 +1253,13 @@ and a graph:
 ```{r, graph_all_metrics}
 
 all_metrics %>% 
-  filter(.metric == "roc_auc") %>% 
-  select(model, roc = .estimate) %>% 
-  ggplot(aes(model, roc)) +
+  filter(.metric == "accuracy") %>% 
+  select(model, accuracy = .estimate) %>% 
+  ggplot(aes(model, accuracy)) +
   geom_col()
 
 ```
 
-## Ensemble - Workflow Sets - not working
-
-```{r, workflow_set}
-
-# no_pre_proc <- 
-#    workflow_set(
-#       preproc = list(base = recipe_base), 
-#       models = list(RF             = lr_model, 
-#                     Regularised_LR = rlr_model, 
-#                     Rand_Forest    = rf_model, 
-#                     boosting       = xgb_model),
-#       cross = TRUE
-#    )
-# no_pre_proc
-# 
-# add_cand
-
-
-```
 
 # Final Submission
 
@@ -1266,15 +1267,22 @@ all_metrics %>%
 
 ```{r, predict_test}
 
+all_predictions %>% 
+distinct(model)
 
-final_test_preds <- 
-  nnet_final_wflow %>% 
-  fit(train_proc_adj_tbl) %>% 
-  predict(new_data=testing(train_split)) %>% 
-  bind_cols(testing(train_split)) %>% 
+glimpse(all_predictions)
+
+test_proc <- all_proc %>% 
+  filter(train_test=="test")
+
+test_predictions <- 
+  predict(ensemble,test_proc) %>% 
+  bind_cols(test) %>% 
   select(PassengerID = passenger_id,Survived = .pred_class)
 
-#colnames(test_2)
+glimpse(test_predictions)
+
+
 
 ```
 
@@ -1282,7 +1290,7 @@ final_test_preds <-
 
 ```{r, write_csv}
 
-#write_csv(final_test_preds,"titanic_sumission.csv")
+write_csv(test_predictions,"titanic_submission_xgb.csv")
 
 ```
 
