@@ -17,13 +17,19 @@ format:
     number-sections: true
     number-depth: 3
     code-fold: true
+execute: 
+  warning: false
+  error: false
+  freeze: true
 ---
 
 ![](thumbnail.jpg){width="215"}
 
-## Summary
+## Summary 
 
-This is just a first test with code in a blog using the new Quarto framework! Guess what I am using..
+This is just a first test with code in a blog using the new Quarto framework! Guess what I am using..yep Titanic, Kaggle version..
+
+It is not very well structured as it is pretty much in the order I did it following all instructions, books and blogs from the expert TidyModels and Quarto teams at RStudio/Posit . All errors belong to me!
 
 ```{r, packages}
 #| context: setup
@@ -42,6 +48,28 @@ library(ggforce)
 tidymodels_prefer()
 
 ```
+
+## Final Kaggle Scores
+
+```{r, kaggle}
+
+kaggle <- tibble(
+  Model = c("Logistic Regression",
+            "Regularised Logistic Regression",
+            "Random Forest-final",
+            "Random Forest-initial",
+            "XG Boost",
+            "Neural Net",
+            "Ensemble"), 
+  Score = c(.76555,.77033,.77751,.78229,.77272,.76794,.77751)
+  )
+
+kaggle %>% knitr::kable()
+```
+
+Which when all submitted gave me a ranking of 1,872 out of 13,000 or so teams, so no grand-master!
+
+Seems like the value mainly comes from the feature engineering and selection process (as the experts all seem to say) given the similarity in above model scores.
 
 ## Review Data
 
@@ -315,9 +343,10 @@ folds <- vfold_cv(train_train, strata = survived, v=5)
 control <- control_resamples(save_pred = TRUE,save_workflow = TRUE)
 
 cores <- parallel::detectCores()
-set.seed(1234)
-doParallel::registerDoParallel(cores = cores)
+cl <- parallel::makePSOCKcluster(cores - 1)
 
+# doParallel::registerDoParallel(cores = cores)
+set.seed(1234)
 lr_fit_cv <- 
   lr_wflow %>% 
   fit_resamples(folds, control = control)
@@ -327,6 +356,8 @@ lr_fit_cv <-
 #lr_fit_cv
 lr_metrics_resample <- collect_metrics(lr_fit_cv)
 lr_metrics_resample
+
+parallel::stopCluster(cl)
 
 ```
 
@@ -343,10 +374,13 @@ lr_resample_test_predictions
 ```
 
 ```{r, LR_fit2}
+cl <- parallel::makePSOCKcluster(cores - 1)
+
 set.seed(1234)
 lm_fit <- lr_wflow %>% fit(data = train_proc_adj_tbl)
 extract_recipe(lm_fit, estimated = TRUE)
 
+parallel::stopCluster(cl)
 ```
 
 ## Regularised Logistic Regression - GLMNET
@@ -398,7 +432,8 @@ rlr_wflow
 # rlr_folds <- vfold_cv(training(train_split), strata = survived, v=10,repeats = 5)
 # rlr_folds %>% tidy()
 
-doParallel::registerDoParallel(cores = cores)
+#doParallel::registerDoParallel(cores = cores)
+cl <- parallel::makePSOCKcluster(cores - 1)
 
 set.seed(234)
 rlr_tuning_result <- tune_grid(
@@ -411,6 +446,8 @@ rlr_tuning_result <- tune_grid(
 rlr_tuning_metrics <- collect_metrics(rlr_tuning_result)
 head(rlr_tuning_metrics) %>% knitr::kable(digits = 3)
 
+
+parallel::stopCluster(cl)
 ```
 
 Review hyper-parameter tuning results and select best
@@ -512,8 +549,12 @@ rlr_test_predictions %>% conf_mat(survived,.pred_class) %>%
 ```{r, rf_model}
 
 rf_model <- 
-  rand_forest(trees = 1000) %>% 
-  set_engine("ranger") %>% 
+  rand_forest(
+    trees = 1000,
+    mtry  = tune(),
+    min_n = tune()
+    ) %>% 
+  set_engine("ranger",importance = "permutation") %>% 
   set_mode("classification")
 
 ```
@@ -529,15 +570,132 @@ rf_wflow <-
 
 ```
 
-### RF Fit Model
+### RF Tuning - Initial
+
+```{r, rf_tuning}
+
+cl <- parallel::makePSOCKcluster(cores - 1)
+
+set.seed(1234)
+rf_tuning_result <- tune_grid(
+  rf_wflow,
+  resamples = folds,
+  grid = 20
+)
+parallel::stopCluster(cl)
+
+rf_tuning_result
+
+rf_tuning_result %>% 
+  collect_metrics() %>% 
+  filter(.metric == "accuracy") %>% 
+  select(mean,min_n,mtry) %>% 
+  pivot_longer(min_n:mtry) %>% 
+  ggplot(aes(value, mean, color = name)) +
+  geom_point(show.legend = FALSE) +
+  facet_wrap(~name, scales = "free_x") +
+  labs(x = NULL, y = "Accuracy")
+
+```
+
+Bit hard to make much of it, but say min_n between 10 and 40 and mtry between 10 and 30?
+
+```{r}
+
+rf_grid <- grid_regular(
+  mtry(range = c(5, 40)),
+  min_n(range = c(5, 30)),
+  levels = 5
+)
+
+rf_grid
+```
+
+### RF Graph Results
+
+```{r}
+#| warning: false
+#| echo: true
+#| message: false
+#| 
+cl <- parallel::makePSOCKcluster(cores - 1)
+
+
+set.seed(1234)
+rf_grid_tune <- tune_grid(
+  rf_wflow,
+  resamples = folds,
+  grid = rf_grid
+)
+rf_grid_tune
+
+parallel::stopCluster(cl)
+
+rf_grid_tune %>%
+  collect_metrics() %>%
+  filter(.metric == "accuracy") %>%
+  mutate(min_n = factor(min_n)) %>%
+  ggplot(aes(mtry, mean, color = min_n)) +
+  geom_line(alpha = 0.5, size = 1.5) +
+  geom_point() +
+  labs(y = "Accuracy")
+
+```
+
+Well that's interesting, lets see what tune thinks is best
+
+```{r}
+
+rf_best_params <- select_best(rf_grid_tune,"accuracy")
+rf_best_params %>% knitr::kable()
+
+```
+
+### RF Final Model
+
+```{r}
+
+rf_final_model <- finalize_model(
+  rf_model,
+  rf_best_params
+)
+rf_final_model
+
+```
+
+### RF Final Workflow
+
+```{r}
+
+
+rf_final_wflow <- finalize_workflow(
+  rf_wflow,
+  rf_best_params
+)
+
+rf_final_wflow
+```
+
+### RF Parameter Importance
+
+```{r, rf_vip}
+
+rf_final_wflow %>%
+  fit(data = train_proc_adj_tbl) %>%
+  extract_fit_parsnip() %>%
+  vip(geom = "point")
+
+```
+
+### RF Final Fit
 
 ```{r, rf_fit}
 
-rf_fit <- 
-  rf_wflow %>% 
+rf_final_fit <- 
+  rf_final_wflow %>% 
   last_fit(train_split)
 
-rf_final_metrics <- collect_metrics(rf_fit)
+rf_final_metrics <- collect_metrics(rf_final_fit)
 rf_final_metrics
 ```
 
@@ -545,13 +703,15 @@ rf_final_metrics
 
 ```{r, rf_predict}
 
-rf_final_fit <- rf_wflow %>% fit(train_test)
-class(rf_final_fit)
+# rf_final_fit <- rf_wflow %>% fit(train_test)
+# class(rf_final_fit)
 
  rf_test_predictions <- 
-  predict(rf_final_fit, new_data = train_test) %>% 
-   bind_cols(predict(rf_final_fit, train_test,type = "prob")) %>% 
-   bind_cols(train_test %>% select(survived))
+   collect_predictions(rf_final_fit)
+   # fit(rf_final_wflow,train_train) %>% 
+   # predict(rf_final_wflow, new_data = train_test) %>% 
+   #bind_cols(predict(rf_final_wflow, train_test,type = "prob")) %>% 
+   #bind_cols(train_test %>% select(survived))
 
  
  head(rf_test_predictions)
@@ -559,12 +719,12 @@ class(rf_final_fit)
  
 ```
 
-### RF Performance on Training Set
+### RF Performance on Test Set
 
 ```{r, rf_perf}
 
-rf_test_predictions %>% 
-  roc_auc(truth = survived, .pred_1,event_level = "second")
+# rf_test_predictions %>% 
+#   roc_auc(truth = survived, .pred_1,event_level = "second")
 
 rf_metrics_accuracy <- rf_test_predictions %>% 
   metrics(truth = survived, estimate = .pred_class) %>% 
@@ -584,34 +744,6 @@ rf_test_predictions %>% conf_mat(survived,.pred_class) %>%
   autoplot(type = "heatmap")
 
 ```
-
-### RF Resampling
-
-```{r, rf_resample}
-#| message: false
-#| warning: false
-
-#folds <- vfold_cv(training(train_split), strata = survived, v=5)
-#folds
-
-control <- control_resamples(save_pred = TRUE,save_workflow = TRUE)
-
-cores <- parallel::detectCores()
-set.seed(1234)
-doParallel::registerDoParallel(cores = cores)
-
-rf_fit_cv <- 
-  rf_wflow %>% 
-  fit_resamples(folds, control = control)
-
-#show_best(lr_fit_cv,metric= "accuracy")
-
-#lr_fit_cv
-rf_metrics_resample <- collect_metrics(rf_fit_cv)
-rf_metrics_resample
-
-```
-
 
 ## XG Boost - Usemodel
 
@@ -635,6 +767,10 @@ use_xgboost(survived ~ .,
 This grid is used for both versions of XG Boost.
 
 ```{r, xgb_grid}
+#| warning: false
+#| echo: true
+#| message: false
+
 
 xgb_grid <- grid_latin_hypercube(
   tree_depth(),
@@ -652,9 +788,6 @@ head(xgb_grid)
 
 
 ```
-
-
-
 
 ```{r, usemodel_scripts}
 
@@ -681,19 +814,19 @@ xgboost_usemodel_wflow <-
   add_recipe(xgboost_usemodel_recipe) %>% 
   add_model(xgboost_usemodel_model) 
 
-doParallel::registerDoParallel(cores = cores)
+#doParallel::registerDoParallel(cores = cores)
+cl <- parallel::makePSOCKcluster(cores - 1)
 
-set.seed(234)
+set.seed(1234)
 xgboost_usemodel_tune <-
   tune_grid(xgboost_usemodel_wflow, resamples = folds, grid = xgb_grid)
 
-
+parallel::stopCluster(cl)
 
 
 ```
 
-
-### XGB - Usemodel Best Parameter Settings 
+### XGB - Usemodel Best Parameter Settings
 
 ```{r, xgb_usemodel_para_sel}
 
@@ -715,11 +848,7 @@ xgboost_usemodel_tune %>%
 
 ```
 
-
-
 Now select best from above
-
-
 
 ```{r, xgb_usemodel_select_paras}
 
@@ -737,6 +866,7 @@ xgb_usemodel_final_wflow
 
 
 ```
+
 ### XGB - Usemodel Parameter Ranking - VIP
 
 ```{r, xgb_usemodel_vip}
@@ -752,14 +882,18 @@ xgb_usemodel_final_wflow %>%
 #### XGB - Usemodel Accuracy Measured on Test Set
 
 ```{r, xgb_usemodel_final_metrics}
-set.seed(234)
+
+cl <- parallel::makePSOCKcluster(cores - 1)
+
+set.seed(1234)
 xgb_usemodel_final_res <- last_fit(xgb_usemodel_final_wflow, train_split)
 xgb_usemodel_final_res
 xgb_usemodel_final_metrics <- collect_metrics(xgb_usemodel_final_res)
 xgb_usemodel_final_metrics
 
-```
+parallel::stopCluster(cl)
 
+```
 
 #### XGB - Usemodel AUC on Test Set (within train)
 
@@ -796,9 +930,6 @@ xgb_usemodel_test_predictions %>% conf_mat(survived,.pred_class) %>%
 
 ```
 
-
-
-
 ## XG Boost - Base Recipe
 
 ### XGB Model Spec
@@ -821,8 +952,6 @@ xgb_model
 
 ```
 
-
-
 ### XGB Workflow
 
 ```{r, xgb_wflow}
@@ -836,9 +965,6 @@ xgb_wflow <-
 
 ```
 
-
-
-
 ### XGB Hyper-Parameter Tuning
 
 ```{r}
@@ -847,9 +973,11 @@ xgb_wflow <-
 # xgb_folds
 
 
-doParallel::registerDoParallel(cores = cores)
+#doParallel::registerDoParallel(cores = cores)
 
-set.seed(234)
+set.seed(1234)
+cl <- parallel::makePSOCKcluster(cores - 1)
+
 xgb_tuning_result <- tune_grid(
   xgb_wflow,
   resamples = folds,
@@ -857,6 +985,8 @@ xgb_tuning_result <- tune_grid(
   control  = control_grid(save_pred = TRUE,save_workflow = TRUE)
 )
 xgb_tuning_result
+
+parallel::stopCluster(cl)
 ```
 
 ```{r}
@@ -895,7 +1025,6 @@ xgb_final_wflow <- finalize_workflow(
 xgb_final_wflow
 
 ```
-
 
 ```{r}
 
@@ -997,13 +1126,14 @@ head(nnet_grid)
 
 ```{r, nn_tuning}
 
-nnet_folds <- vfold_cv(train_train, strata = survived)
-nnet_folds
+# nnet_folds <- vfold_cv(train_train, strata = survived)
+# nnet_folds
 
 
-doParallel::registerDoParallel(cores = cores)
+# doParallel::registerDoParallel(cores = cores)
+cl <- parallel::makePSOCKcluster(cores - 1)
 
-set.seed(234)
+set.seed(1234)
 nnet_tuning_result <- tune_grid(
   nnet_wflow,
   resamples = folds,
@@ -1011,6 +1141,9 @@ nnet_tuning_result <- tune_grid(
   control   = control_grid(save_pred = TRUE,save_workflow = TRUE)
 )
 nnet_tuning_result
+
+parallel::stopCluster(cl)
+
 ```
 
 ### NN Best Parameters and Finalise Workflow
@@ -1137,12 +1270,13 @@ model_stack <-
 ### Stack Blend
 
 ```{r}
+cl <- parallel::makePSOCKcluster(cores - 1)
 
-set.seed(123)
+set.seed(1234)
 ensemble <- blend_predictions(model_stack,penalty = 10^seq(-2, -0.5, length = 20))
 autoplot(ensemble)
 
-
+parallel::stopCluster(cl)
 ```
 
 ```{r,ensemble_table}
@@ -1171,8 +1305,6 @@ collect_parameters(ensemble,"xgb_tuning_result")
 
 ```
 
-
-
 ### Stack Predict
 
 ```{r}
@@ -1197,11 +1329,6 @@ glimpse(ensemble_test_predictions)
 
 ```
 
-
-
-
-
-
 ## Join Model Prediction Data
 
 ```{r, all_predictions}
@@ -1215,7 +1342,7 @@ all_predictions <-
   bind_rows(xgb_usemodel_test_predictions %>% mutate(model = "xgb_usemodel")) %>% 
   bind_rows(ensemble_test_predictions %>% mutate(model = "ensemble"))
   
-all_predictions %>% knitr::kable()
+all_predictions %>% head() %>% knitr::kable()
 
 
 
@@ -1249,7 +1376,6 @@ all_metrics_table %>% knitr::kable(digits=3)
 
 and a graph:
 
-
 ```{r, graph_all_metrics}
 
 all_metrics %>% 
@@ -1260,39 +1386,93 @@ all_metrics %>%
 
 ```
 
-
 # Final Submission
-
-## Predict on Test set
 
 ```{r, predict_test}
 
-all_predictions %>% 
-distinct(model)
+# all_predictions %>% 
+# distinct(model)
 
-glimpse(all_predictions)
+
 
 test_proc <- all_proc %>% 
   filter(train_test=="test")
 
-test_predictions <- 
-  predict(ensemble,test_proc) %>% 
-  bind_cols(test) %>% 
+# LR ----
+final_test_pred_LR <- 
+  lr_wflow %>% 
+  fit(train_proc_adj_tbl) %>% 
+  predict(new_data=test_proc) %>% 
+  bind_cols(test_proc)
+
+submission_LR <- final_test_pred_LR %>% 
   select(PassengerID = passenger_id,Survived = .pred_class)
 
-glimpse(test_predictions)
+write_csv(submission_LR,"titanic_submission_LR.csv") 
+
+
+# RLR ----
+final_test_pred_RLR <- 
+  rlr_final_wflow %>% 
+  fit(train_proc_adj_tbl) %>% 
+  predict(new_data=test_proc) %>% 
+  bind_cols(test_proc)
+
+submission_RLR <- final_test_pred_RLR %>% 
+  select(PassengerID = passenger_id,Survived = .pred_class)
+
+write_csv(submission_RLR,"titanic_submission_RLR.csv") 
+
+# RF ----
+final_test_pred_RF <- 
+  rf_final_wflow %>% 
+  fit(train_proc_adj_tbl) %>% 
+  predict(new_data=test_proc) %>% 
+  bind_cols(test_proc)
+
+submission_RF <- final_test_pred_RF %>% 
+  select(PassengerID = passenger_id,Survived = .pred_class)
+
+write_csv(submission_RF,"titanic_submission_RF.csv") 
+
+# NN ----
+final_test_pred_NN <- 
+  nnet_final_wflow %>% 
+  fit(train_proc_adj_tbl) %>% 
+  predict(new_data=test_proc) %>% 
+  bind_cols(test_proc)
+
+submission_NN <- final_test_pred_NN %>% 
+  select(PassengerID = passenger_id,Survived = .pred_class)
+
+write_csv(submission_NN,"titanic_submission_NN.csv") 
+
+
+# XGB -----
+final_test_pred_xgb <-
+  xgb_final_wflow %>% 
+  fit(train_proc_adj_tbl) %>% 
+  predict(new_data=test_proc) %>% 
+  bind_cols(test_proc)
+
+submission_xgb <- final_test_pred_xgb %>% 
+  select(PassengerID = passenger_id,Survived = .pred_class)
+
+write_csv(submission_xgb,"titanic_submission_xgb.csv")
+
+
+# ensemble -----
+final_test_pred_ens <-
+  ensemble %>% 
+  #fit(train_proc_adj_tbl) %>% 
+  predict(new_data=test_proc) %>% 
+  bind_cols(test_proc)
+
+submission_ens <- final_test_pred_ens %>% 
+  select(PassengerID = passenger_id,Survived = .pred_class)
+
+write_csv(submission_ens,"titanic_submission_ens.csv")
 
 
 
 ```
-
-## Write Submission File
-
-```{r, write_csv}
-
-write_csv(test_predictions,"titanic_submission_xgb.csv")
-
-```
-
-
-
