@@ -282,3 +282,52 @@ Note:
 -   Jetstar worst performer, although all 3 airlines guilty of worsening performance.
 
 -   Signs of improvement in most recent reports.
+
+To highlight the y-o-y changes:
+
+```{r, fig.height= 8}
+
+year_select <- 2016
+
+otp_issues_airline2 <- otp_prep_df %>% 
+  filter(airline != "All Airlines",
+         year > year_select
+         ) %>%
+  mutate(airline = str_to_title(airline)) %>% 
+  group_by(year,airline) %>% 
+  summarise(sectors_scheduled = sum(sectors_scheduled),
+            arrivals_delayed = sum(arrivals_delayed),
+            cancellations = sum(cancellations),
+            otp_issues_num = sum(otp_issues_num)
+            ) %>% 
+  mutate(otp_issues_pct = (arrivals_delayed+cancellations)/sectors_scheduled ) %>% 
+  mutate(airline = fct_reorder(airline,otp_issues_pct))
+
+
+g_otp_issues_airline_2 <- otp_issues_airline2 %>% 
+  filter(airline %in%c("Jetstar","Virgin Australia", "Qantas")) %>% 
+  ggplot(aes(year,otp_issues_pct,fill = year))+
+  geom_col()+
+  geom_text(aes(label = percent(otp_issues_pct,accuracy = .1)),
+            hjust = 1,
+            colour = "white")+
+  #coord_flip()+
+  scale_y_continuous(labels=scales::percent)+
+  #scale_x_discrete(breaks = 0)+
+  ylab("OTP Issues/Scheduled Services")+
+  xlab("")+
+  labs(title="On-Time Performance Issues by Year",
+       subtitle = "as pct of Scheduled Services")+
+  theme_bw()+
+  
+  coord_flip()+
+  facet_wrap(vars(airline),dir = "v")
+
+g_otp_issues_airline_2
+
+#ggplotly(g_otp_issues_airline_2)
+
+
+
+
+```
