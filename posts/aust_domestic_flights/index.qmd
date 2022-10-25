@@ -225,3 +225,60 @@ ggplotly(g_opt)
 
 
 ```
+
+While the 'loess' smoother indicates a continual worsening of performance, most recent reporting perhaps indicates the airlines are starting to address OTP issues.
+
+### OTP - By Airline over Time
+
+This graph just focuses on the main 3 domestic carriers.
+
+```{r, otp_airline}
+
+
+otp_issues_airline <- otp_prep_df %>% 
+  filter(airline %in% c("Jetstar","Qantas","Virgin Australia"),
+         year > 2019
+         ) %>%
+  
+  mutate(airline = str_to_title(airline)) %>% 
+  group_by(date,airline) %>% 
+  summarise(sectors_scheduled = sum(sectors_scheduled),
+            arrivals_delayed  = sum(arrivals_delayed),
+            cancellations     = sum(cancellations),
+            otp_issues_num    = sum(otp_issues_num)
+            ) %>% 
+  mutate(arrivals_delayed_pct = arrivals_delayed/sectors_scheduled,
+         cacellations_pct     = cancellations/sectors_scheduled,
+         otp_issues_total_pct = (arrivals_delayed+cancellations)/sectors_scheduled ) %>% 
+  select(date,airline,ends_with("pct")) %>% 
+  pivot_longer(cols = ends_with("pct"), names_to = "otp_metric",values_to = "pct_issues")
+
+g_otp_issues_airline <- otp_issues_airline %>% 
+  ggplot(aes(date,pct_issues,colour = airline))+
+  geom_line()+
+  #geom_smooth(method="loess")+
+  scale_x_date(date_breaks = "3 month",date_labels = "%m/%y")+
+  scale_y_continuous(labels=scales::percent)+
+  xlab("Month")+
+  ylab("Pct of Monthly Scheduled Services") +
+  theme_bw()+
+  theme(legend.position =  "bottom")+
+  facet_wrap(~otp_metric,ncol=1)
+
+
+ggplotly(g_otp_issues_airline)
+
+
+
+
+```
+
+Note:
+
+-   cancellations in initial covid period
+
+-   Upswing in OTP issues (mainly non-cancellations) in more recent days
+
+-   Jetstar worst performer, although all 3 airlines guilty of worsening performance.
+
+-   Signs of improvement in most recent reports.
