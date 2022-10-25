@@ -7,9 +7,6 @@ website:
   sidebar:
     style: "docked"
     search: true
-    contents:
-      - section: "Data Exploration"
-      - index.qmd
 format: 
   html: 
     theme: litera
@@ -28,11 +25,13 @@ execute:
   cache: true
 ---
 
+![](thumbnail.jpg){width="215"}
+
 ## Introduction
 
 This analysis summarises Australian domestic flight volumes and on-time performance (OTP) issues by airline over time.
 
-It has been prepared mainly to get more used to Quarto, adn comprises:
+It has been prepared mainly to get more used to Quarto, and comprises:
 
 -   Initial data load and preprocessing - not shown
 
@@ -43,7 +42,7 @@ It has been prepared mainly to get more used to Quarto, adn comprises:
 -   Forecasting - to come
 
 ```{r, load_packages}
-#| echo: false
+
 
 library(tidyverse)
 
@@ -80,7 +79,7 @@ Data is sourced from https://data.gov.au/ site, specific datasets used being:
 (need to add notes/refs)
 
 ```{r, data_load}
-#| echo: false
+
 
 
 top_routes_prep_df <- read_rds("./artifacts/top_routes_prep_df.rds")

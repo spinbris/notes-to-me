@@ -12,20 +12,25 @@ website:
       - index.qmd
 format: 
   html: 
+    theme: litera
     toc: true
     toc-title: Contents
     number-sections: true
     number-depth: 3
     code-fold: true
+    code-summary: "Code"
+    code-tools: true
 execute: 
+  echo: true
   warning: false
   error: false
   freeze: true
+  cache: true
 ---
 
 ![](thumbnail.jpg){width="215"}
 
-## Summary 
+## Summary
 
 This is just a first test with code in a blog using the new Quarto framework! Guess what I am using..yep Titanic, Kaggle version..
 
