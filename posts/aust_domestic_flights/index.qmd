@@ -176,9 +176,9 @@ top_routes_short <- top_routes_prep_df %>%
   # summarise(passenger_trips = sum(passenger_trips))
 
   leaflet() %>% 
-    #addProviderTiles(providers$OpenTopoMap) %>% 
+    addProviderTiles(providers$OpenTopoMap) %>% 
     addTiles() %>%
-    addProviderTiles(providers$Esri.WorldStreetMap) %>% 
+    #addProviderTiles(providers$Esri.WorldStreetMap) %>% 
   addFlows(
     top_routes_short$city1_lng, 
     top_routes_short$city1_lat, 
@@ -191,5 +191,37 @@ top_routes_short <- top_routes_prep_df %>%
     maxThickness = 5,
     popupOptions = list(closeOnClick = FALSE, autoClose = FALSE)
   )
+
+```
+
+### On Time Performance (OTP) - All Domestic Routes
+
+Performance Metric: OTP_issues_pct = (delayed arrivals + cancelled flights)/ Total Sectors Scheduled.
+
+As this metric is based on arrival delays and canellations as a percentage of scheduled services, the higher the number, then the worse the performance!
+
+```{r, otp_total}
+#| warnining: false
+#| message: false
+
+otp_issues_all <- otp_prep_df %>% 
+  filter(airline == "All Airlines") %>% 
+  group_by(date) %>% 
+  summarise(sectors_scheduled = sum(sectors_scheduled),
+            arrivals_delayed = sum(arrivals_delayed),
+            cancellations = sum(cancellations),
+            otp_issues_num = sum(otp_issues_num)
+            ) %>% 
+  mutate(otp_issues_pct = (arrivals_delayed+cancellations)/sectors_scheduled)
+
+g_opt <- otp_issues_all %>% 
+  ggplot(aes(date,otp_issues_pct))+
+  geom_line()+
+  geom_smooth(method="loess")+
+  scale_y_continuous(labels=scales::percent)+
+  theme_bw()
+
+ggplotly(g_opt)
+
 
 ```
