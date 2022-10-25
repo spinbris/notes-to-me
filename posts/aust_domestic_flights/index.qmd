@@ -1,0 +1,196 @@
+---
+title: "Australian Domestic Flights"
+author: "Stephen J Parton"
+date: "2022-10-20"
+categories: [code, analytics, flights, maps]
+website:
+  sidebar:
+    style: "docked"
+    search: true
+    contents:
+      - section: "Data Exploration"
+      - index.qmd
+format: 
+  html: 
+    theme: litera
+    toc: true
+    toc-title: Contents
+    number-sections: true
+    number-depth: 3
+    code-fold: true
+    code-summary: "Code"
+    code-tools: true
+execute: 
+  echo: true
+  warning: false
+  error: false
+  freeze: true
+  cache: true
+---
+
+## Introduction
+
+This analysis summarises Australian domestic flight volumes and on-time performance (OTP) issues by airline over time.
+
+It has been prepared mainly to get more used to Quarto, adn comprises:
+
+-   Initial data load and preprocessing - not shown
+
+-   Domestic Flight Analysis - This document
+
+-   Global Flight Analysis - Next document
+
+-   Forecasting - to come
+
+```{r, load_packages}
+#| echo: false
+
+library(tidyverse)
+
+
+library(scales)
+
+library(leaflet)
+library(leaflet.minicharts)
+
+
+library(janitor)
+library(plotly)
+library(gganimate)
+
+library(dygraphs)
+
+
+options(scipen = 999)
+
+
+
+```
+
+## Data Sources
+
+Data is sourced from https://data.gov.au/ site, specific datasets used being:
+
+-   Top routes
+
+-   Industry Totals
+
+-   On-Time-Performance - Domestic
+
+(need to add notes/refs)
+
+```{r, data_load}
+#| echo: false
+
+
+top_routes_prep_df <- read_rds("./artifacts/top_routes_prep_df.rds")
+ind_totals_prep_df <- read_rds("./artifacts/ind_totals_prep_df.rds")
+dom_cargo_prep_df  <- read_rds("./artifacts/dom_cargo_prep_df.rds")
+otp_prep_df        <- read_rds("./artifacts/otp_prep_df.rds")
+
+latest_date        <- max(top_routes_prep_df$date)
+
+
+otp_prep_df <- otp_prep_df %>% 
+  mutate(across(airline,str_replace,'QantasLink','Qantas')) %>% 
+  mutate(across(airline,str_replace,"Virgin Australia - Atr/F100 Operations","Virgin Australia")) %>% 
+  mutate(across(airline,str_replace,"Virgin Australia Regional Airlines","Virgin Australia"))
+
+
+
+
+```
+
+## Exploratory Data Analysis
+
+### All Major Routes - Total Monthly Pax
+
+Total monthly passenger numbers :
+
+```{r, total_pax}
+
+g <- ind_totals_prep_df %>% 
+  #filter(year>2010) %>% 
+  ggplot(aes(x=date,y=passenger_trips))+
+  geom_line()+
+  scale_y_continuous(labels=scales::comma)+
+  scale_x_date(date_breaks = "2 year",date_labels = "%y")+
+  labs(title = "Australian Domestic Flight History", x="Year", y = "Passenger Numbers (monthly)")+
+  theme_bw()
+ggplotly(g)
+
+```
+
+Key "points of interest":
+
+-   1987 pilot strike
+
+-   2000 Olympic Games
+
+-   COVID!!!!
+
+Seasonality and trend both also clearly show, at least until covid.
+
+We can break this down by top 10 routes (only tracked 2-way):
+
+### Top 10 Routes - Monthly Pax by O/D City Pairs
+
+```{r,top_routes}
+
+## * Top routes ----
+top_routes <- top_routes_prep_df %>% 
+  group_by(route,date=max(date)) %>% 
+  summarise(passenger_trips = sum(passenger_trips)) %>% 
+  ungroup() %>%
+  slice_max(passenger_trips, n=10) %>% 
+  select(route) %>% 
+  pull() %>% 
+  as.character()
+  
+
+g1 <- top_routes_prep_df %>% 
+  filter(route %in% top_routes) %>%
+  mutate(route = factor(route,levels=top_routes)) %>% 
+  ggplot(aes(date,passenger_trips,colour =route))+
+  geom_line()+
+  scale_y_continuous(labels=scales::comma)+
+  scale_x_date(date_breaks = "2 year",date_labels = "%y")+
+  scale_colour_discrete(name  ="Route - 2way")+
+  labs(title = "Australian Domestic Flight History - Top10 (2-way) Routes", x="by Month", y = "Passenger Numbers (monthly)")+
+  #theme_bw() +
+  theme(legend.position="bottom")
+ggplotly(g1)
+
+```
+
+### All Routes - Total Monthly Pax - Mapped
+
+Following map shows all routes in 2019 (precovid), thickness of line representiing pax volumes for the year (in this case with a moving monthly timeline to show impact of covid - but does not really work that well). As width of line signifies volumes of passenger trips, Sydney-Melbourne route clearly has thickest line!
+
+```{r, leaflet_mapped}
+
+## * Routes Mapped - Leaflet ----
+
+top_routes_short <- top_routes_prep_df %>%
+  filter(year>2019) 
+  # group_by(year,city1,city2,city1_lng,city1_lat,city2_lng,city2_lat) %>% 
+  # summarise(passenger_trips = sum(passenger_trips))
+
+  leaflet() %>% 
+    #addProviderTiles(providers$OpenTopoMap) %>% 
+    addTiles() %>%
+    addProviderTiles(providers$Esri.WorldStreetMap) %>% 
+  addFlows(
+    top_routes_short$city1_lng, 
+    top_routes_short$city1_lat, 
+    top_routes_short$city2_lng, 
+    top_routes_short$city2_lat,
+    flow = top_routes_short$passenger_trips,
+    time = top_routes_short$date,
+    dir = 0,
+    minThickness = .1,
+    maxThickness = 5,
+    popupOptions = list(closeOnClick = FALSE, autoClose = FALSE)
+  )
+
+```

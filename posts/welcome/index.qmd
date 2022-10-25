@@ -7,7 +7,7 @@ categories: [news]
 
 ![](thumbnail.jpg)
 
-This is my public notebook created in Quarto after seeing all the recent webinars from the amazing people at RStudio (eg JJ Allaire, Tom Mock and Isabella Velasquez)
+This is my public notebook created in Quarto after seeing all the recent webinars from the amazing people at RStudio.
 
 It is intended that it will contain public 'Notes to Myself' on some of my interests which professionally are likely to centre on things like:
 
