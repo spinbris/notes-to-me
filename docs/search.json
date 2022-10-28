@@ -4,7 +4,7 @@
     "href": "index.html",
     "title": "Notes Index",
     "section": "",
-    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n         \n          Author\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\n\n\n\n\n\n\ncode\n\n\nanalytics\n\n\nflights\n\n\nmaps\n\n\n\n\n\n\n\n\n\n\n\nOct 20, 2022\n\n\nStephen J Parton\n\n\n\n\n\n\n  \n\n\n\n\n\n\n\n\n\n\ncode\n\n\nanalysis\n\n\ntitanic\n\n\n\n\n\n\n\n\n\n\n\nSep 1, 2022\n\n\nStephen Parton\n\n\n\n\n\n\n  \n\n\n\n\n\n\n\n\n\n\nnews\n\n\n\n\n\n\n\n\n\n\n\nAug 29, 2022\n\n\nStephen Parton\n\n\n\n\n\n\nNo matching items"
+    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n         \n          Author\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n\n\n\n\n\n\n\n\n\nAustralian International Flights\n\n\n\n\n\n\n\ncode\n\n\nanalytics\n\n\nflights\n\n\nmaps\n\n\n\n\n\n\n\n\n\n\n\nOct 25, 2022\n\n\nStephen J Parton\n\n\n\n\n\n\n  \n\n\n\n\nAustralian Domestic Flights\n\n\n\n\n\n\n\ncode\n\n\nanalytics\n\n\nflights\n\n\nmaps\n\n\n\n\n\n\n\n\n\n\n\nOct 20, 2022\n\n\nStephen J Parton\n\n\n\n\n\n\n  \n\n\n\n\nTitanic from Kaggle\n\n\n\n\n\n\n\ncode\n\n\nanalysis\n\n\ntitanic\n\n\n\n\n\n\n\n\n\n\n\nSep 1, 2022\n\n\nStephen Parton\n\n\n\n\n\n\n  \n\n\n\n\nWhat is this for?\n\n\n\n\n\n\n\nnews\n\n\n\n\n\n\n\n\n\n\n\nAug 29, 2022\n\n\nStephen Parton\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "about.html",
@@ -278,5 +278,47 @@
     "title": "Australian Domestic Flights",
     "section": "1 Introduction",
     "text": "1 Introduction\nThis analysis summarises Australian domestic flight volumes and on-time performance (OTP) issues by airline over time.\nIt has been prepared mainly to get more used to Quarto, and comprises:\n\nInitial data load and preprocessing - not shown\nDomestic Flight Analysis - This document\nGlobal Flight Analysis - Next document\nForecasting - to come\n\n\n\nCode\nlibrary(tidyverse)\n\n\nlibrary(scales)\n\nlibrary(leaflet)\nlibrary(leaflet.minicharts)\n\n\nlibrary(janitor)\nlibrary(plotly)\nlibrary(gganimate)\n\nlibrary(dygraphs)\n\n\noptions(scipen = 999)"
+  },
+  {
+    "objectID": "posts/aust_international_flights/index.html",
+    "href": "posts/aust_international_flights/index.html",
+    "title": "Australian International Flights",
+    "section": "",
+    "text": "This analysis summarises Australian international flight volumes over time.\nIt has been prepared mainly to get more used to Quarto, and comprises:\n\nInitial data load and preprocessing - not shown\nDomestic Flight Analysis - previous post\nGlobal Flight Analysis - this document\nForecasting - to come\n\nThis is a pretty brief look - might try it in Shiny where it will probably come together better. The biggest challenge was the great circle mapping, the solution to which was pretty much right in front of me on ‘the R Graph Gallery’…"
+  },
+  {
+    "objectID": "posts/aust_international_flights/index.html#exploratory-data-analysis",
+    "href": "posts/aust_international_flights/index.html#exploratory-data-analysis",
+    "title": "Australian International Flights",
+    "section": "3 Exploratory Data Analysis",
+    "text": "3 Exploratory Data Analysis\n\n3.1 All Major Routes - Total Monthly Pax\nTotal monthly passenger numbers , which shows the cliff it went off, but also some solid signs of rebound:\n\n\nCode\n## * Industry Volumes by Time ----\ncity_pair_totals <- intl_flights_city_pairs_prep_df %>% \n  group_by(date) %>% \n  summarise(passengers_total =sum(passengers_total))\n  \ng <- city_pair_totals %>% \n  #filter(year>2010) %>% \n  ggplot(aes(x=date,y=passengers_total))+\n  geom_line()+\n  scale_y_continuous(labels=scales::comma)+\n  scale_x_date(date_breaks = \"2 year\",date_labels = \"%y\")+\n  labs(title = \"Australian Global Flight History\", x=\"Year\", y = \"Passenger Numbers (monthly)\")+\n  theme_bw()\nggplotly(g)"
+  },
+  {
+    "objectID": "posts/aust_international_flights/index.html#top-routes",
+    "href": "posts/aust_international_flights/index.html#top-routes",
+    "title": "Australian International Flights",
+    "section": "4 Top Routes",
+    "text": "4 Top Routes\nYep, that will hurt:\n\n\nCode\ntop_totals <- intl_flights_city_pairs_prep_df %>% \n  filter(year ==2019) %>% \n  group_by(year, route) %>% \n  summarise(passengers_total =sum(passengers_total)) %>% \n  ungroup() %>%\n  slice_max(passengers_total, n=20) %>% \n  select(route) %>% \n  pull() %>% \n  as.character()\n\ng1 <- intl_flights_city_pairs_prep_df %>% \n  filter(route %in% top_totals,year > 2014) %>%\n  mutate(route = factor(route,levels=top_totals)) %>% \n  ggplot(aes(date,passengers_total,colour =route))+\n  geom_line()+\n  scale_y_continuous(labels=scales::comma)+\n  scale_x_date(date_breaks = \"2 year\",date_labels = \"%y\")+\n  scale_colour_discrete(name  =\"Route - 2way\")+\n  labs(title = \"Australian International Flight History - Top (2-way) Routes\", x=\"by Month\", y = \"Passenger Numbers (monthly)\")+\n  theme_bw()\n  \nggplotly(g1)"
+  },
+  {
+    "objectID": "posts/aust_international_flights/index.html#packages-and-data",
+    "href": "posts/aust_international_flights/index.html#packages-and-data",
+    "title": "Australian International Flights",
+    "section": "2 Packages and Data",
+    "text": "2 Packages and Data\nLoad packages:\n\n\nCode\n#| echo: false\n#| message: false\n#| warning: false\n\nlibrary(tidyverse)\nlibrary(scales)\n\nlibrary(maps)\nlibrary(geosphere)\n\nlibrary(janitor)\nlibrary(plotly)\nlibrary(gganimate)\n\n\nLoad pre-processed data:\n\n\nCode\n#| echo: false\n\nintl_flights_seats_prep_df <- read_rds(\"./artifacts/intl_flights_seats_prep_df.rds\")\nintl_flights_city_pairs_prep_df <- read_rds(\"./artifacts/intl_flights_city_pairs_prep_df.rds\")\nintl_country_of_port_prep_df <- read_rds(\"./artifacts/intl_country_of_port_prep_df.rds\")"
+  },
+  {
+    "objectID": "posts/aust_international_flights/index.html#top-destinations",
+    "href": "posts/aust_international_flights/index.html#top-destinations",
+    "title": "Australian International Flights",
+    "section": "5 Top Destinations",
+    "text": "5 Top Destinations\nWhich tells the same story all over again!\n\n\nCode\ndestination_df <- intl_flights_city_pairs_prep_df %>% \n  group_by(intl_city_country,international_city,year) %>% \n  summarise(\n    passengers_total = sum(passengers_total),\n    freight_total_tonnes = sum(freight_total_tonnes),\n    mail_total_tonnes = sum(mail_total_tonnes)\n    ) %>% \n  ungroup()\n\ntop_dest_unique <- destination_df %>%\n  group_by(international_city) %>% \n  summarise(passengers_total = sum(passengers_total)) %>% \n  ungroup() %>% \n  slice_max(passengers_total, n=10) %>% \n  select(international_city) %>% \n  unique() %>% \n  pull() %>% \n  as.character()\n\n\ng2 <- destination_df %>% \n  filter(international_city %in% top_dest_unique ,year > 2016) %>%\n  ggplot(aes(international_city,passengers_total))+\n  geom_col()+\n  scale_y_continuous(labels=scales::comma)+\n  scale_colour_discrete(name  =\"Route - 2way\")+\n  labs(title = \"Australian International Flight History - Top Destinations\", x=\"\", y = \"Passenger Numbers pa\")+\n  theme_bw() +\n  facet_wrap(~year,ncol = 1,dir = \"v\",scales = \"free_y\") +\n  coord_flip()\n\ng2"
+  },
+  {
+    "objectID": "posts/aust_international_flights/index.html#mapping---aust-international-routes-2019",
+    "href": "posts/aust_international_flights/index.html#mapping---aust-international-routes-2019",
+    "title": "Australian International Flights",
+    "section": "6 Mapping - Aust International Routes 2019",
+    "text": "6 Mapping - Aust International Routes 2019\nUsing 2019, just because it is pre-covid. Could use later years and will in a more dynamic environment.\nSetting up required code:\n\n\nCode\ntop_routes <- intl_flights_city_pairs_prep_df %>% \n  filter(year ==2019) %>% \n  group_by(route) %>% \n  summarise(passengers_total = sum(passengers_total)) %>% \n  ungroup() %>%\n  slice_max(passengers_total, n=150) %>% \n  select(route) %>% \n  pull() %>% \n  as.character()\n\nroutes <- intl_flights_city_pairs_prep_df %>% \n  filter(route %in% top_routes) %>% \n  select(route,australian_city, international_city,\n         aust_city_lat,aust_city_lng,\n         intl_city_lat,intl_city_lng) %>% \n  unique()\n\n\nAnd the resulting map:\n\n\nCode\n# A function to plot routes\nplot_routes=function( dep_lon, dep_lat, arr_lon, arr_lat, ...){\n  inter <- gcIntermediate(c(dep_lon, dep_lat), c(arr_lon, arr_lat), n=50, addStartEnd=TRUE, breakAtDateLine=F)             \n  inter=data.frame(inter)\n  diff_of_lon=abs(dep_lon) + abs(arr_lon)\n  if(diff_of_lon > 180){\n    lines(subset(inter, lon>=0), ...)\n    lines(subset(inter, lon<0), ...)\n  }else{\n    lines(inter, ...)\n  }\n}\n\n# background map\npar(mar=c(0,0,0,0))\nmap('world',col=\"gray\", fill=TRUE, bg=\"white\", \n    lwd=0.05,border=0, mar=rep(0,4),ylim=c(-75,75) )\ntitle(\"International Flight Routes - Australia 2019\")\n\n# add all selected routes:\nfor(i in 1:nrow(routes)){\n  plot_routes(routes$aust_city_lng[i], \n              routes$aust_city_lat[i], \n              routes$intl_city_lng[i], \n              routes$intl_city_lat[i], \n              col=\"blue\", lwd=1)\n}\n\n# add points and names of cities\npoints(x=routes$intl_city_lng, \n       y=routes$intl_city_lat, col=\"slateblue\", cex=2, pch=20)\n\n\n\n\n\nThe above map is a bit(!) overloaded, because I left all routes in (to pick up London, New York etc). We can play with that in a more dynamic environment, probably Shiny (or even Power Bi)\nAs mentioned, the great circle mapping was a bit of a pain to do, but actually quite simple once you find the correct approach. I will improve this as time permits!"
   }
 ]

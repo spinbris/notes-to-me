@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/aust_international_flights/index.html",
       "/posts/aust_domestic_flights/index.html",
       "/posts/post-with-code/index.html",
       "/posts/welcome/index.html"
