@@ -25,6 +25,8 @@ freeze: true
 cache: true
 ---
 
+![](thumbnail.jpg)
+
 ## Introduction
 
 This analysis summarises Australian international flight volumes over time.
