@@ -41,7 +41,7 @@ It has been prepared mainly to get more used to Quarto, and comprises:
 
 -   Forecasting - to come
 
-This is a pretty brief look - might try it in Shiny where it will probably come together better. The biggest challenge was the great circle mapping, the solution to which was pretty much right in front of me on ['the R Graph Gallery'](https://r-graph-gallery.com/how-to-draw-connecting-routes-on-map-with-r-and-great-circles.html)...
+This is a pretty brief lookK There is also a shiny version on [shinyapps here](https://sjpanalytics.shinyapps.io/shiny_aust_flights/). The biggest challenge was the great circle mapping, the solution to which was pretty much right in front of me on ['the R Graph Gallery'](https://r-graph-gallery.com/how-to-draw-connecting-routes-on-map-with-r-and-great-circles.html)...
 
 ## Packages and Data
 
@@ -237,7 +237,7 @@ for(i in 1:nrow(routes)){
               routes$aust_city_lat[i], 
               routes$intl_city_lng[i], 
               routes$intl_city_lat[i], 
-              col="blue", lwd=1)
+              col="blue", lwd=.1)
 }
 
 # add points and names of cities

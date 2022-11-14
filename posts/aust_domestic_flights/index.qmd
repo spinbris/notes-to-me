@@ -39,6 +39,8 @@ It has been prepared mainly to get more used to Quarto, and comprises:
 
 -   Global Flight Analysis - Next document
 
+-   Equivalent (draft) shiny app (on [shinyapps here](https://sjpanalytics.shinyapps.io/shiny_aust_flights/))
+
 -   Forecasting - to come
 
 ```{r, load_packages}
