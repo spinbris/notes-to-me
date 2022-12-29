@@ -327,5 +327,82 @@
     "title": "Australian International Flights",
     "section": "1 Introduction",
     "text": "1 Introduction\nThis analysis summarises Australian international flight volumes over time.\nIt has been prepared mainly to get more used to Quarto, and comprises:\n\nInitial data load and preprocessing - not shown\nDomestic Flight Analysis - previous post\nGlobal Flight Analysis - this document\nForecasting - to come\n\nThis is a pretty brief look - might try it in Shiny where it will probably come together better. The biggest challenge was the great circle mapping, the solution to which was pretty much right in front of me on ‘the R Graph Gallery’…"
+  },
+  {
+    "objectID": "posts/forecasting_with_h20/index.html",
+    "href": "posts/forecasting_with_h20/index.html",
+    "title": "Forecasting Flight Passengers using H20",
+    "section": "",
+    "text": "This analyses is the first of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:\n\nSome pre analysis (basic EDA analysis is not covered as already included in previous posts)\n‘Sequence’ style models - ARIMA etc\nML style models - XGBoost etc including nesting and ensembling\nDeep learning models (GLuonTS etc)\nSummary of conclusions\n\nThis post is in relation to the part 4 - focussing on H20, usimg the modeltime package to connect. This post is actually using ML models, but will be expanded to include deep learning approaches\nit uses the modeltime H20 documentation"
+  },
+  {
+    "objectID": "posts/forecasting_with_h20/index.html#load-libraries",
+    "href": "posts/forecasting_with_h20/index.html#load-libraries",
+    "title": "Forecasting Flight Passengers using H20",
+    "section": "2 Load Libraries",
+    "text": "2 Load Libraries\n\n\nCode\nlibrary(tidymodels)\nlibrary(modeltime.h2o)\nlibrary(tidyverse)\nlibrary(timetk)"
+  },
+  {
+    "objectID": "posts/forecasting_with_h20/index.html#load-data",
+    "href": "posts/forecasting_with_h20/index.html#load-data",
+    "title": "Forecasting Flight Passengers using H20",
+    "section": "3 Load Data",
+    "text": "3 Load Data\n\n\nCode\ntop_x   <- 10\nstart   <- \"2001-01-01\"\nend     <- \"2019-07-01\"\nhorizon <-  \"1 year\"\n\ntop_routes_prep_df <- read_rds(\"./artifacts/top_routes_prep_df.rds\") %>%  \n  filter(route != \"BRISBANE-EMERALD\") %>% #dodgy for some reason\n  #rowid_to_column(var = \"id\") %>% \n  select(date,route,passenger_trips)\n\ntopx <- top_routes_prep_df %>% \n  group_by(route) %>% \n  summarise(passenger_trips = sum(passenger_trips)) %>% \n  ungroup() %>% \n  slice_max(passenger_trips, n=top_x) %>% \n  arrange(desc(passenger_trips)) %>% \n  select(route) %>% \n  pull() %>% \n  as.character()\n\ntopx %>% knitr::kable()\n\n\n\n\n\nx\n\n\n\n\nMELBOURNE-SYDNEY\n\n\nBRISBANE-SYDNEY\n\n\nBRISBANE-MELBOURNE\n\n\nGOLD COAST-SYDNEY\n\n\nADELAIDE-MELBOURNE\n\n\nADELAIDE-SYDNEY\n\n\nMELBOURNE-PERTH\n\n\nPERTH-SYDNEY\n\n\nMELBOURNE-GOLD COAST\n\n\nBRISBANE-CAIRNS"
+  },
+  {
+    "objectID": "posts/forecasting_with_h20/index.html#graph-plots-for-top-routes-to-save-space",
+    "href": "posts/forecasting_with_h20/index.html#graph-plots-for-top-routes-to-save-space",
+    "title": "Forecasting Flight Passengers using H20",
+    "section": "4 Graph Plots for top routes (to save space)",
+    "text": "4 Graph Plots for top routes (to save space)\nThese graphs include full history. Covid period will be excluded for future analysis (bit hard to predict that little black swan).\n\n\nCode\ntop_routes_prep_df %>% \n  filter(route %in% topx) %>%\n  group_by(route) %>% \n  plot_time_series(\n    .date_var    = date,\n    .value       = passenger_trips/1000,\n    .facet_ncol  = 2,\n    .smooth      = F,\n    .interactive = F,\n    .title       = \"Passenger Trips(000) by Route\"\n  )\n\n\n\n\n\n## Split data\nData is split inot trainig and test sets. Test set is 12 months.\n\n\nCode\ndata_tbl <- top_routes_prep_df %>% \n  filter(date %>% between_time(start,end))\n  \n\nsplits <- time_series_split(data_tbl, assess = horizon, cumulative = TRUE)\n\nrecipe_spec <- recipe(passenger_trips ~ ., data = training(splits)) %>%\n    step_timeseries_signature(date) \n\ntrain_tbl <- training(splits) %>% bake(prep(recipe_spec), .)\ntest_tbl  <- testing(splits)  %>% bake(prep(recipe_spec), .)\n\nmin(test_tbl$date)\n\n\n[1] \"2018-08-01\""
+  },
+  {
+    "objectID": "docs/site_libs/minichart-0.2.2/doc/introduction.html",
+    "href": "docs/site_libs/minichart-0.2.2/doc/introduction.html",
+    "title": "Introduction to leaflet.minicharts",
+    "section": "",
+    "text": "For a few years now, it has become very to create interactive maps with R thanks to the package leaflet by the Rstudio team. Nevertheless, it only provides only a few functions to create basic shapes on a map, so the information that can be represented on a single map is limited: if you have some data associated to some points, you can only represent at most two variables by drawing circles and changing their radius and color according to data.\nleaflet.minicharts is an R package that provides two functions to add and update small charts on an interactive maps created with the package leaflet. These charts can be used to represent as many variables as desired associated to geographical points. Currently, three types of chart are supported: barcharts (the default), pie charts and polar area charts.\nlet’s have a look to a concrete example."
+  },
+  {
+    "objectID": "docs/site_libs/minichart-0.2.2/doc/introduction.html#data",
+    "href": "docs/site_libs/minichart-0.2.2/doc/introduction.html#data",
+    "title": "Introduction to leaflet.minicharts",
+    "section": "Data",
+    "text": "Data\nThe package provides a table that contains the electric production, consumption and exchanges of France from january 2010 to february 2017 and of 12 french regions from january 2013 to february 2017.\nIn addition to the total production, the table contains one column for each type of production. The table also contains the latitude and longitude of the center of the regions.\n\nlibrary(leaflet.minicharts)\ndata(\"eco2mix\")\nhead(eco2mix)\n\n                  area      lng      lat   month total nuclear coal fuel gaz\n1 Auvergne-Rhone-Alpes 4.537338 45.51266 2015-03 11430    8230    6   40 200\n2 Auvergne-Rhone-Alpes 4.537338 45.51266 2015-06 10056    7200    4   35   5\n3 Auvergne-Rhone-Alpes 4.537338 45.51266 2013-04 10532    7410    0   31   3\n4 Auvergne-Rhone-Alpes 4.537338 45.51266 2015-04 10103    7275    4   39  86\n5 Auvergne-Rhone-Alpes 4.537338 45.51266 2014-08  9052    6357    0   25  -1\n6 Auvergne-Rhone-Alpes 4.537338 45.51266 2015-11  9258    7192    5   45 250\n  hydraulic wind solar bioenergy load balance export import balanceUK balanceES\n1      2737   74    57        82 6326    4747     NA     NA        NA        NA\n2      2606   44   101        58 4848    4891     NA     NA        NA        NA\n3      2948   55    39        42   NA      NA     NA     NA        NA        NA\n4      2487   66    81        61 5283    4439     NA     NA        NA        NA\n5      2487   38    76        68 4299    4447     NA     NA        NA        NA\n6      1563   75    40        86 5829    3141     NA     NA        NA        NA\n  balanceIT balanceCH balanceDEBE\n1        NA        NA          NA\n2        NA        NA          NA\n3        NA        NA          NA\n4        NA        NA          NA\n5        NA        NA          NA\n6        NA        NA          NA"
+  },
+  {
+    "objectID": "docs/site_libs/minichart-0.2.2/doc/introduction.html#renewable-productions-in-2016",
+    "href": "docs/site_libs/minichart-0.2.2/doc/introduction.html#renewable-productions-in-2016",
+    "title": "Introduction to leaflet.minicharts",
+    "section": "Renewable productions in 2016",
+    "text": "Renewable productions in 2016\nNowadays, France has an objective of 23% of renewable energies in the consumption of the country by 2020. Are the country close to its objective. Is the share of renewable energies similar in all regions?\nTo answer this question let us focus on the year 2016 We first prepare the required data with package dplyr:\n\nlibrary(dplyr)\n\nprod2016 <- eco2mix %>%\n  mutate(\n    renewable = bioenergy + solar + wind + hydraulic,\n    non_renewable = total - bioenergy - solar - wind - hydraulic\n  ) %>%\n  filter(grepl(\"2016\", month) & area != \"France\") %>%\n  select(-month) %>%\n  group_by(area, lat, lng) %>%\n  summarise_all(sum) %>%\n  ungroup()\n\nhead(prod2016)\n\n# A tibble: 6 × 23\n  area    lat   lng  total nuclear  coal  fuel   gaz hydra…¹  wind solar bioen…²\n  <chr> <dbl> <dbl>  <dbl>   <dbl> <dbl> <dbl> <dbl>   <dbl> <dbl> <dbl>   <dbl>\n1 Auve…  45.5  4.54 108517   75002    59   101  2318   28398   849   803     949\n2 Bour…  47.2  4.81   2762       0     0     1   644     939   773   211     172\n3 Bret…  48.2 -2.84   3141       0     0     9   543     581  1472   192     319\n4 Cent…  47.5  1.69  78430   75733     0     0   274     120  1616   238     418\n5 Gran…  48.7  5.61 107755   82734  1650    41  8282    8990  4917   462     642\n6 Haut…  50.0  2.77  45593   31222    48    17  8302       8  4851   122     982\n# … with 11 more variables: load <dbl>, balance <dbl>, export <dbl>,\n#   import <dbl>, balanceUK <dbl>, balanceES <dbl>, balanceIT <dbl>,\n#   balanceCH <dbl>, balanceDEBE <dbl>, renewable <dbl>, non_renewable <dbl>,\n#   and abbreviated variable names ¹​hydraulic, ²​bioenergy\n\n\nWe also create a base map that will be used in all the following examples\n\nlibrary(leaflet)\n\ntilesURL <- \"http://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}\"\n\nbasemap <- leaflet(width = \"100%\", height = \"400px\") %>%\n  addTiles(tilesURL)\n\nWe now add to the base map a pie chart for each region that represents the share of renewable energies. We also change the width of the pie charts so their area is proportional to the total production of the corresponding region.\n\ncolors <- c(\"#4fc13c\", \"#cccccc\")\n\nbasemap %>%\n  addMinicharts(\n    prod2016$lng, prod2016$lat,\n    type = \"pie\",\n    chartdata = prod2016[, c(\"renewable\", \"non_renewable\")], \n    colorPalette = colors, \n    width = 60 * sqrt(prod2016$total) / sqrt(max(prod2016$total)), transitionTime = 0\n  )\n\n\n\n\n\nWe can see that the three south east regions exceed the target of 23%, but most regions are far from this objective. Globally, renewable energies represented only 19% percent of the production of 2016.\nNow let’s represent the different types of renewable production using bar charts.\n\nrenewable2016 <- prod2016 %>% select(hydraulic, solar, wind)\ncolors <- c(\"#3093e5\", \"#fcba50\", \"#a0d9e8\")\nbasemap %>%\n  addMinicharts(\n    prod2016$lng, prod2016$lat,\n    chartdata = renewable2016,\n    colorPalette = colors,\n    width = 45, height = 45\n  )\n\n\n\n\n\nHydraulic production is far more important than solar and wind. Without surprise, solar production is more important in south while wind production is more important in the north."
+  },
+  {
+    "objectID": "docs/site_libs/minichart-0.2.2/doc/introduction.html#representing-a-single-variable",
+    "href": "docs/site_libs/minichart-0.2.2/doc/introduction.html#representing-a-single-variable",
+    "title": "Introduction to leaflet.minicharts",
+    "section": "Representing a single variable",
+    "text": "Representing a single variable\nleaflet.minicharts has been designed to represent multiple variables at once, but you still may want to use it to represent a single variable. In the next example, we represent the total load of each french region in 2016. When data passed to addMinicharts contains a single column, it automatically represents it with circle which area is proportional to the corresponding value. In the example we also use the parameter showLabels to display rounded values of the variable inside the circles.\n\nbasemap %>%\n  addMinicharts(\n    prod2016$lng, prod2016$lat,\n    chartdata = prod2016$load,\n    showLabels = TRUE,\n    width = 45\n  )\n\n\n\n\n\nThis is nice, isn’t it?"
+  },
+  {
+    "objectID": "docs/site_libs/minichart-0.2.2/doc/introduction.html#animated-maps",
+    "href": "docs/site_libs/minichart-0.2.2/doc/introduction.html#animated-maps",
+    "title": "Introduction to leaflet.minicharts",
+    "section": "Animated maps",
+    "text": "Animated maps\nUntil now, we have only represented aggregated data but it would be nice to create a map that represents the evolution over time of some variables. It is actually easy with leaflet.minicharts. The first step is to construct a table containing longitude, latitude, a time column and the variables we want to represent. The table eco2mix already has all these columns. We only need to filter the rows containing data for the entire country.\n\nprodRegions <- eco2mix %>% filter(area != \"France\")\n\nNow we can create our animated map by using the argument “time”:\n\nbasemap %>% \n  addMinicharts(\n    prodRegions$lng, prodRegions$lat, \n    chartdata = prodRegions[, c(\"hydraulic\", \"solar\", \"wind\")],\n    time = prodRegions$month,\n    colorPalette = colors,\n    width = 45, height = 45\n  )"
+  },
+  {
+    "objectID": "docs/site_libs/minichart-0.2.2/doc/introduction.html#represent-flows",
+    "href": "docs/site_libs/minichart-0.2.2/doc/introduction.html#represent-flows",
+    "title": "Introduction to leaflet.minicharts",
+    "section": "Represent flows",
+    "text": "Represent flows\nSince version 0.2, leaflet.minicharts has also functions to represent flows between points and their evolution. To illustrate this, let’s represent the evolution of electricity exchanges between France and Neighboring countries.\nTo do that, we use function addFlows. It requires coordinates of two points for each flow and the value of the flow. Other arguments are similar to addMinicharts.\n\ndata(\"eco2mixBalance\")\nbal <- eco2mixBalance\nbasemap %>%\n  addFlows(\n    bal$lng0, bal$lat0, bal$lng1, bal$lat1,\n    flow = bal$balance,\n    time = bal$month\n  )\n\n\n\n\n\nOf course, you can represent flows and minicharts on the same map!"
+  },
+  {
+    "objectID": "docs/site_libs/minichart-0.2.2/doc/introduction.html#use-in-shiny-web-applications",
+    "href": "docs/site_libs/minichart-0.2.2/doc/introduction.html#use-in-shiny-web-applications",
+    "title": "Introduction to leaflet.minicharts",
+    "section": "Use in shiny web applications",
+    "text": "Use in shiny web applications\nIn shiny applications, you can create nice transition effects by using functions leafletproxy and updateMinicharts/updateFlows. In the server function you first need to initialize the map and the minicharts. The important thing here is to use parameter layerId so that updateMinicharts can know which chart to update with which values.\n\nserver <- function(input, output, session) {\n  # Initialize map\n  output$mymap <- renderLeaflet(\n    leaflet() %>% addTiles() %>%\n      addMinicharts(lon, lat, layerId = uniqueChartIds)\n  )\n}\n\nThen use leafletProxy() and updateMinicharts in your reactive code:\n\nserver <- function(input, output, session) {\n  # Initialize map\n  ...\n  \n  # Update map\n  observe({\n    newdata <- getData(input$myinput)\n    \n    leafletProxy(\"mymap\") %>% \n      updateMinicharts(uniqueChartIds, chartdata = newdata, ...)\n  })\n}\n\nYou can find a live example here."
   }
 ]

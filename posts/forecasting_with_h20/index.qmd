@@ -27,7 +27,7 @@ cache: true
 
 ## Introduction
 
-This analyses is the first of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:
+This analyses is one part of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:
 
 1.  Some pre analysis (basic EDA analysis is not covered as already included in previous posts)
 
@@ -97,5 +97,29 @@ top_routes_prep_df %>%
     .interactive = F,
     .title       = "Passenger Trips(000) by Route"
   )
+
+```
+
+\## Split data
+
+Data is split inot trainig and test sets. Test set is 12 months.
+
+```{r, split}
+
+
+data_tbl <- top_routes_prep_df %>% 
+  filter(date %>% between_time(start,end))
+  
+
+splits <- time_series_split(data_tbl, assess = horizon, cumulative = TRUE)
+
+recipe_spec <- recipe(passenger_trips ~ ., data = training(splits)) %>%
+    step_timeseries_signature(date) 
+
+train_tbl <- training(splits) %>% bake(prep(recipe_spec), .)
+test_tbl  <- testing(splits)  %>% bake(prep(recipe_spec), .)
+
+min(test_tbl$date)
+
 
 ```
