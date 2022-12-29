@@ -1,0 +1,101 @@
+---
+title: "Forecasting Flight Passengers using H20"
+author: "Stephen J Parton"
+date: "2022-12-16"
+categories: [code, analytics, flights, forecasting]
+website:
+  sidebar:
+    style: "docked"
+    search: true
+format: 
+  html: 
+    theme: litera
+toc: true
+toc-title: Contents
+number-sections: true
+number-depth: 3
+code-fold: true
+code-summary: "Code"
+code-tools: true
+execute: 
+  echo: true
+  warning: false
+  error: false
+freeze: true
+cache: true
+---
+
+## Introduction
+
+This analyses is the first of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:
+
+1.  Some pre analysis (basic EDA analysis is not covered as already included in previous posts)
+
+2.  'Sequence' style models - ARIMA etc
+
+3.  ML style models - XGBoost etc including nesting and ensembling
+
+4.  Deep learning models (GLuonTS etc)
+
+5.  Summary of conclusions
+
+This post is in relation to the part 4 - focussing on H20, usimg the modeltime package to connect. This post is actually using ML models, but will be expanded to include deep learning approaches
+
+it uses the modeltime H20 [documentation](https://business-science.github.io/modeltime.h2o/articles/getting-started.html)
+
+## Load Libraries
+
+```{r, libraries}
+library(tidymodels)
+library(modeltime.h2o)
+library(tidyverse)
+library(timetk)
+```
+
+## Load Data
+
+```{r, data}
+
+top_x   <- 10
+start   <- "2001-01-01"
+end     <- "2019-07-01"
+horizon <-  "1 year"
+
+top_routes_prep_df <- read_rds("./artifacts/top_routes_prep_df.rds") %>%  
+  filter(route != "BRISBANE-EMERALD") %>% #dodgy for some reason
+  #rowid_to_column(var = "id") %>% 
+  select(date,route,passenger_trips)
+
+topx <- top_routes_prep_df %>% 
+  group_by(route) %>% 
+  summarise(passenger_trips = sum(passenger_trips)) %>% 
+  ungroup() %>% 
+  slice_max(passenger_trips, n=top_x) %>% 
+  arrange(desc(passenger_trips)) %>% 
+  select(route) %>% 
+  pull() %>% 
+  as.character()
+
+topx %>% knitr::kable()
+```
+
+## Graph Plots for top routes (to save space)
+
+These graphs include full history. Covid period will be excluded for future analysis (bit hard to predict that little black swan).
+
+```{r, graph,fig.width=10,fig.height=15}
+
+
+top_routes_prep_df %>% 
+  filter(route %in% topx) %>%
+  group_by(route) %>% 
+  plot_time_series(
+    .date_var    = date,
+    .value       = passenger_trips/1000,
+    .facet_ncol  = 2,
+    .smooth      = F,
+    .interactive = F,
+    .title       = "Passenger Trips(000) by Route"
+  )
+
+```
