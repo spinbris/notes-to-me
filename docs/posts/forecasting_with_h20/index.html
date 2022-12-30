@@ -1267,7 +1267,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a><span class="fu">## Introduction</span></span>
 <span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a>This analyses is one part of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:</span>
+<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a>This analysis is one part of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:</span>
 <span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-34"><a href="#cb25-34" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>Some pre analysis (basic EDA analysis is not covered as already included in previous posts)</span>
 <span id="cb25-35"><a href="#cb25-35" aria-hidden="true" tabindex="-1"></a></span>
@@ -1543,18 +1543,20 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb25-305"><a href="#cb25-305" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-306"><a href="#cb25-306" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb25-307"><a href="#cb25-307" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-308"><a href="#cb25-308" aria-hidden="true" tabindex="-1"></a><span class="fu">## Save Model and Close H2o connection</span></span>
+<span id="cb25-308"><a href="#cb25-308" aria-hidden="true" tabindex="-1"></a>I could compare the above prediction to the actuals, and i did on the base analyses, but it is a bit pointless due to the covid cliff, which is not in the analysis. Might include it as/if data is updated and some normality resumes.</span>
 <span id="cb25-309"><a href="#cb25-309" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-310"><a href="#cb25-310" aria-hidden="true" tabindex="-1"></a><span class="in">```{r, save_close}</span></span>
+<span id="cb25-310"><a href="#cb25-310" aria-hidden="true" tabindex="-1"></a><span class="fu">## Save Model and Close H2o connection</span></span>
 <span id="cb25-311"><a href="#cb25-311" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-312"><a href="#cb25-312" aria-hidden="true" tabindex="-1"></a>model_fitted <span class="sc">%&gt;%</span> </span>
-<span id="cb25-313"><a href="#cb25-313" aria-hidden="true" tabindex="-1"></a>  <span class="fu">save_h2o_model</span>(<span class="at">path =</span> <span class="st">"./artifacts/h20_model1"</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb25-314"><a href="#cb25-314" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-315"><a href="#cb25-315" aria-hidden="true" tabindex="-1"></a><span class="co">#model_h2o &lt;- load_h2o_model(path = "./artifacts/h20_model1")</span></span>
+<span id="cb25-312"><a href="#cb25-312" aria-hidden="true" tabindex="-1"></a><span class="in">```{r, save_close}</span></span>
+<span id="cb25-313"><a href="#cb25-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-314"><a href="#cb25-314" aria-hidden="true" tabindex="-1"></a>model_fitted <span class="sc">%&gt;%</span> </span>
+<span id="cb25-315"><a href="#cb25-315" aria-hidden="true" tabindex="-1"></a>  <span class="fu">save_h2o_model</span>(<span class="at">path =</span> <span class="st">"./artifacts/h20_model1"</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb25-316"><a href="#cb25-316" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-317"><a href="#cb25-317" aria-hidden="true" tabindex="-1"></a><span class="co">#h2o.shutdown(prompt = FALSE)</span></span>
+<span id="cb25-317"><a href="#cb25-317" aria-hidden="true" tabindex="-1"></a><span class="co">#model_h2o &lt;- load_h2o_model(path = "./artifacts/h20_model1")</span></span>
 <span id="cb25-318"><a href="#cb25-318" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-319"><a href="#cb25-319" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb25-319"><a href="#cb25-319" aria-hidden="true" tabindex="-1"></a><span class="co">#h2o.shutdown(prompt = FALSE)</span></span>
+<span id="cb25-320"><a href="#cb25-320" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-321"><a href="#cb25-321" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 
