@@ -264,5 +264,12 @@
     "title": "What is this for?",
     "section": "",
     "text": "This is my public notebook created in Quarto after seeing all the recent webinars from the amazing people at RStudio.\nIt is intended that it will contain public ‘Notes to Myself’ on some of my interests which professionally are likely to centre on things like:\n\nR Programming\nPython Programming\nML analytics in R and Python\nFinance and data analytics (my day job)\nOther analytics and notes collected from wherever\n\nNot sure that it will be much use to anyone else, but feel free to wander through."
+  },
+  {
+    "objectID": "posts/forecasting_with_h20/index.html#introduction",
+    "href": "posts/forecasting_with_h20/index.html#introduction",
+    "title": "Forecasting Flight Passengers using H20",
+    "section": "1 Introduction",
+    "text": "1 Introduction\nThis analyses is one part of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:\n\nSome pre analysis (basic EDA analysis is not covered as already included in previous posts)\n‘Sequence’ style models - ARIMA etc\nML style models - XGBoost etc including nesting and ensembling\nDeep learning models (GLuonTS etc)\nSummary of conclusions\n\nThis post is in relation to the part 4 - focussing on H20, usimg the modeltime package to connect. This post is actually using ML models, but will be expanded to include deep learning approaches\nit uses the modeltime H20 documentation"
   }
 ]
