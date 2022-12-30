@@ -54,6 +54,10 @@ library(timetk)
 
 ## Load Data
 
+All data is loaded, except Brisbane-Emerald route is excluded as it caused problems, probably due to lack of data.
+
+The top 10 routes are shown in order of overall patronage
+
 ```{r, data}
 
 top_x   <- 10
@@ -100,9 +104,9 @@ top_routes_prep_df %>%
 
 ```
 
-\## Split data
+## Split data
 
-Data is split inot trainig and test sets. Test set is 12 months.
+Data filtered to targetted period and then is split into trainig and test sets. Test set is 12 months.
 
 ```{r, split}
 
@@ -119,7 +123,195 @@ recipe_spec <- recipe(passenger_trips ~ ., data = training(splits)) %>%
 train_tbl <- training(splits) %>% bake(prep(recipe_spec), .)
 test_tbl  <- testing(splits)  %>% bake(prep(recipe_spec), .)
 
-min(test_tbl$date)
+#min(test_tbl$date)
+splits
 
+```
+
+## Connect to H20
+
+```{r, h2o}
+
+# Initialize H2O
+h2o.init(
+    nthreads = -1,
+    ip       = 'localhost',
+    port     = 54321
+)
+# Optional - Set H2O No Progress to remove progress bars
+h2o.no_progress()
+
+```
+
+## Set up Model Specification
+
+```{r, model_spec}
+
+model_spec <- automl_reg(mode = 'regression') %>%
+    set_engine(
+         engine                     = 'h2o',
+         max_runtime_secs           = 60*60, 
+         max_runtime_secs_per_model = 60,
+         max_models                 = 10,
+         nfolds                     = 5,
+         #exclude_algos              = c("DeepLearning"),
+         verbosity                  = NULL,
+         seed                       = 786
+    ) 
+
+model_spec
+
+
+```
+
+## Train and Fit
+
+```{r, train}
+
+model_fitted <- model_spec %>%
+    fit(passenger_trips ~ ., data = train_tbl)
+
+model_fitted 
+
+```
+
+## Leaderboard
+
+```{r, leaderboard}
+
+leaderboard_tbl <- automl_leaderboard(model_fitted) 
+
+leaderboard_tbl %>% knitr::kable()
+
+```
+
+So AutoML and stacked ensembles thereof lead the way, deep learning approaches not really ranking!
+
+Now,
+
+```{r,modeltime_table}
+
+modeltime_tbl <- modeltime_table(
+    model_fitted
+) 
+
+modeltime_tbl
+
+
+```
+
+## Calibrate - test data
+
+```{r,calibration_tbl}
+
+calibration_tbl <- modeltime_tbl %>%
+  modeltime_calibrate(
+    new_data = test_tbl,
+    id      = "route")
+
+forecast_test_tbl <- calibration_tbl %>% 
+    modeltime_forecast(
+        new_data    = test_tbl,
+        actual_data = data_tbl,
+        keep_data   = TRUE,
+        conf_by_id  = T
+    ) %>%
+    group_by(route)
+
+#calibration_tbl
+
+```
+
+## Graph Forecast - Top 10 Routes
+
+Using the top model in the leaderboard- Auto_ML Stacked Ensemble
+
+```{r,calibration_graph,fig.width=10,fig.height=15}
+
+forecast_test_tbl %>%
+  filter(route %in% topx,
+         lubridate::year(date)> 2015) %>% 
+    plot_modeltime_forecast(
+        .facet_ncol = 2, 
+        .interactive = T,
+        .title = "Forecast v Test Data - top 10 Routes"
+    )
+
+
+
+```
+
+So forecasts look pretty good...
+
+## Accuracy
+
+Another look at accuracy measures of top model only.
+
+```{r, accuracy}
+
+calibration_tbl %>% 
+  modeltime_accuracy(metric_set = extended_forecast_accuracy_metric_set()) %>% 
+  knitr::kable()
+
+```
+
+## Refit to full Dataset
+
+Before doing any predictions, we need to refit model to full dataset (train and test), so that prediction is based on most recent data!
+
+```{r, refit}
+
+data_prepared_tbl <- bind_rows(train_tbl, test_tbl)
+
+future_tbl <- data_prepared_tbl %>%
+    group_by(route) %>%
+    future_frame(.date_var   = date,
+                 .length_out = "1 year") %>%
+    ungroup()
+
+future_prepared_tbl <- bake(prep(recipe_spec), future_tbl)
+
+refit_tbl <- calibration_tbl %>%
+    modeltime_refit(data_prepared_tbl)
+
+
+```
+
+## Prediction
+
+```{r, pred, graph_pred,fig.width=10,fig.height=15}
+
+prediction <- refit_tbl %>%
+    modeltime_forecast(
+        new_data    = future_prepared_tbl,
+        actual_data = data_prepared_tbl,
+        keep_data   = TRUE,
+        conf_by_id  = T
+    ) %>%
+    group_by(route) 
+
+prediction %>% 
+  filter(route %in% topx,
+         lubridate::year(date)> 2015) %>% 
+  plot_modeltime_forecast(
+        .facet_ncol  = 2,
+        .interactive = T,
+        .title       = "Passenger Trip Prediction - top 10 Routes"
+        
+    )
+
+
+```
+
+## Save Model and Close H2o connection
+
+```{r, save_close}
+
+model_fitted %>% 
+  save_h2o_model(path = "./artifacts/h20_model1", overwrite = TRUE)
+
+#model_h2o <- load_h2o_model(path = "./artifacts/h20_model1")
+
+#h2o.shutdown(prompt = FALSE)
 
 ```

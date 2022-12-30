@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.0.38">
+<meta name="generator" content="quarto-1.2.269">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -12,10 +12,15 @@
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-span.underline{text-decoration: underline;}
-div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
 pre > code.sourceCode { white-space: pre; position: relative; }
 pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
@@ -54,7 +59,7 @@ code span.al { color: #ff0000; font-weight: bold; } /* Alert */
 code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
 code span.at { color: #7d9029; } /* Attribute */
 code span.bn { color: #40a070; } /* BaseN */
-code span.bu { } /* BuiltIn */
+code span.bu { color: #008000; } /* BuiltIn */
 code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
 code span.ch { color: #4070a0; } /* Char */
 code span.cn { color: #880000; } /* Constant */
@@ -67,7 +72,7 @@ code span.er { color: #ff0000; font-weight: bold; } /* Error */
 code span.ex { } /* Extension */
 code span.fl { color: #40a070; } /* Float */
 code span.fu { color: #06287e; } /* Function */
-code span.im { } /* Import */
+code span.im { color: #008000; font-weight: bold; } /* Import */
 code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
 code span.kw { color: #007020; font-weight: bold; } /* Keyword */
 code span.op { color: #666666; } /* Operator */
@@ -133,35 +138,38 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <header id="quarto-header" class="headroom fixed-top">
     <nav class="navbar navbar-expand-lg navbar-dark ">
       <div class="navbar-container container-fluid">
-      <a class="navbar-brand" href="../../index.html">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">Notes to Myself</span>
-  </a>
+    </a>
+  </div>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="dropdown-header">
- by Stephen Parton</li>
+ <span class="menu-text">by Stephen Parton</span></li>
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../../about.html">About</a>
+    <a class="nav-link" href="../../about.html">
+ <span class="menu-text">About</span></a>
   </li>  
   <li class="nav-item compact">
     <a class="nav-link" href="https://github.com/spinbris"><i class="bi bi-github" role="img">
 </i> 
- </a>
+ <span class="menu-text"></span></a>
   </li>  
   <li class="nav-item compact">
     <a class="nav-link" href="https://twitter.com/spinb"><i class="bi bi-twitter" role="img">
 </i> 
- </a>
+ <span class="menu-text"></span></a>
   </li>  
   <li class="nav-item compact">
     <a class="nav-link" href="https://www.linkedin.com/in/stephen-parton-2737594/"><i class="bi bi-linkedin" role="img">
 </i> 
- </a>
+ <span class="menu-text"></span></a>
   </li>  
 </ul>
               <div class="quarto-toggle-container">
@@ -201,6 +209,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
         <p class="date">01-09-2022</p>
       </div>
     </div>
+    
       
     </div>
     
@@ -209,93 +218,93 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc">
+        <nav id="TOC" role="doc-toc" class="toc-active">
     <h2 id="toc-title">Contents</h2>
    
   <ul>
-  <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary"> <span class="header-section-number">0.1</span> Summary</a></li>
-  <li><a href="#final-kaggle-scores" id="toc-final-kaggle-scores" class="nav-link" data-scroll-target="#final-kaggle-scores"> <span class="header-section-number">0.2</span> Final Kaggle Scores</a></li>
-  <li><a href="#review-data" id="toc-review-data" class="nav-link" data-scroll-target="#review-data"> <span class="header-section-number">0.3</span> Review Data</a>
+  <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary"><span class="toc-section-number">0.1</span>  Summary</a></li>
+  <li><a href="#final-kaggle-scores" id="toc-final-kaggle-scores" class="nav-link" data-scroll-target="#final-kaggle-scores"><span class="toc-section-number">0.2</span>  Final Kaggle Scores</a></li>
+  <li><a href="#review-data" id="toc-review-data" class="nav-link" data-scroll-target="#review-data"><span class="toc-section-number">0.3</span>  Review Data</a>
   <ul class="collapse">
-  <li><a href="#load-some-kaggle-data" id="toc-load-some-kaggle-data" class="nav-link" data-scroll-target="#load-some-kaggle-data"> <span class="header-section-number">0.3.1</span> Load Some Kaggle Data</a></li>
-  <li><a href="#some-initial-eda" id="toc-some-initial-eda" class="nav-link" data-scroll-target="#some-initial-eda"> <span class="header-section-number">0.3.2</span> Some Initial EDA</a></li>
-  <li><a href="#some-initial-wrangling" id="toc-some-initial-wrangling" class="nav-link" data-scroll-target="#some-initial-wrangling"> <span class="header-section-number">0.3.3</span> Some Initial Wrangling</a></li>
-  <li><a href="#a-bit-more-eda" id="toc-a-bit-more-eda" class="nav-link" data-scroll-target="#a-bit-more-eda"> <span class="header-section-number">0.3.4</span> A bit more EDA</a></li>
-  <li><a href="#eyeballing-survival-graphs-on-training-data" id="toc-eyeballing-survival-graphs-on-training-data" class="nav-link" data-scroll-target="#eyeballing-survival-graphs-on-training-data"> <span class="header-section-number">0.3.5</span> Eyeballing Survival Graphs on Training Data</a></li>
-  <li><a href="#split-data-back-to-traintestvalidation" id="toc-split-data-back-to-traintestvalidation" class="nav-link" data-scroll-target="#split-data-back-to-traintestvalidation"> <span class="header-section-number">0.3.6</span> Split Data back to Train/Test/Validation</a></li>
+  <li><a href="#load-some-kaggle-data" id="toc-load-some-kaggle-data" class="nav-link" data-scroll-target="#load-some-kaggle-data"><span class="toc-section-number">0.3.1</span>  Load Some Kaggle Data</a></li>
+  <li><a href="#some-initial-eda" id="toc-some-initial-eda" class="nav-link" data-scroll-target="#some-initial-eda"><span class="toc-section-number">0.3.2</span>  Some Initial EDA</a></li>
+  <li><a href="#some-initial-wrangling" id="toc-some-initial-wrangling" class="nav-link" data-scroll-target="#some-initial-wrangling"><span class="toc-section-number">0.3.3</span>  Some Initial Wrangling</a></li>
+  <li><a href="#a-bit-more-eda" id="toc-a-bit-more-eda" class="nav-link" data-scroll-target="#a-bit-more-eda"><span class="toc-section-number">0.3.4</span>  A bit more EDA</a></li>
+  <li><a href="#eyeballing-survival-graphs-on-training-data" id="toc-eyeballing-survival-graphs-on-training-data" class="nav-link" data-scroll-target="#eyeballing-survival-graphs-on-training-data"><span class="toc-section-number">0.3.5</span>  Eyeballing Survival Graphs on Training Data</a></li>
+  <li><a href="#split-data-back-to-traintestvalidation" id="toc-split-data-back-to-traintestvalidation" class="nav-link" data-scroll-target="#split-data-back-to-traintestvalidation"><span class="toc-section-number">0.3.6</span>  Split Data back to Train/Test/Validation</a></li>
   </ul></li>
-  <li><a href="#recipe-base" id="toc-recipe-base" class="nav-link" data-scroll-target="#recipe-base"> <span class="header-section-number">0.4</span> Recipe-Base</a>
+  <li><a href="#recipe-base" id="toc-recipe-base" class="nav-link" data-scroll-target="#recipe-base"><span class="toc-section-number">0.4</span>  Recipe-Base</a>
   <ul class="collapse">
-  <li><a href="#save-files" id="toc-save-files" class="nav-link" data-scroll-target="#save-files"> <span class="header-section-number">0.4.1</span> Save Files</a></li>
+  <li><a href="#save-files" id="toc-save-files" class="nav-link" data-scroll-target="#save-files"><span class="toc-section-number">0.4.1</span>  Save Files</a></li>
   </ul></li>
-  <li><a href="#models" id="toc-models" class="nav-link" data-scroll-target="#models"> <span class="header-section-number">0.5</span> Models</a>
+  <li><a href="#models" id="toc-models" class="nav-link" data-scroll-target="#models"><span class="toc-section-number">0.5</span>  Models</a>
   <ul class="collapse">
-  <li><a href="#logistic-regression" id="toc-logistic-regression" class="nav-link" data-scroll-target="#logistic-regression"> <span class="header-section-number">0.5.1</span> Logistic Regression</a></li>
+  <li><a href="#logistic-regression" id="toc-logistic-regression" class="nav-link" data-scroll-target="#logistic-regression"><span class="toc-section-number">0.5.1</span>  Logistic Regression</a></li>
   </ul></li>
-  <li><a href="#regularised-logistic-regression---glmnet" id="toc-regularised-logistic-regression---glmnet" class="nav-link" data-scroll-target="#regularised-logistic-regression---glmnet"> <span class="header-section-number">0.6</span> Regularised Logistic Regression - GLMNET</a>
+  <li><a href="#regularised-logistic-regression---glmnet" id="toc-regularised-logistic-regression---glmnet" class="nav-link" data-scroll-target="#regularised-logistic-regression---glmnet"><span class="toc-section-number">0.6</span>  Regularised Logistic Regression - GLMNET</a>
   <ul class="collapse">
-  <li><a href="#rlr-model-spec" id="toc-rlr-model-spec" class="nav-link" data-scroll-target="#rlr-model-spec"> <span class="header-section-number">0.6.1</span> RLR Model Spec</a></li>
-  <li><a href="#rlr-parameter-tuning" id="toc-rlr-parameter-tuning" class="nav-link" data-scroll-target="#rlr-parameter-tuning"> <span class="header-section-number">0.6.2</span> RLR Parameter Tuning</a></li>
-  <li><a href="#rlr-workflow" id="toc-rlr-workflow" class="nav-link" data-scroll-target="#rlr-workflow"> <span class="header-section-number">0.6.3</span> RLR Workflow</a></li>
-  <li><a href="#rlr-hyper-parameter-tuning" id="toc-rlr-hyper-parameter-tuning" class="nav-link" data-scroll-target="#rlr-hyper-parameter-tuning"> <span class="header-section-number">0.6.4</span> RLR Hyper-parameter Tuning</a></li>
-  <li><a href="#rlr-predict" id="toc-rlr-predict" class="nav-link" data-scroll-target="#rlr-predict"> <span class="header-section-number">0.6.5</span> RLR Predict</a></li>
-  <li><a href="#rlr-confusion-matrix" id="toc-rlr-confusion-matrix" class="nav-link" data-scroll-target="#rlr-confusion-matrix"> <span class="header-section-number">0.6.6</span> RLR Confusion Matrix</a></li>
+  <li><a href="#rlr-model-spec" id="toc-rlr-model-spec" class="nav-link" data-scroll-target="#rlr-model-spec"><span class="toc-section-number">0.6.1</span>  RLR Model Spec</a></li>
+  <li><a href="#rlr-parameter-tuning" id="toc-rlr-parameter-tuning" class="nav-link" data-scroll-target="#rlr-parameter-tuning"><span class="toc-section-number">0.6.2</span>  RLR Parameter Tuning</a></li>
+  <li><a href="#rlr-workflow" id="toc-rlr-workflow" class="nav-link" data-scroll-target="#rlr-workflow"><span class="toc-section-number">0.6.3</span>  RLR Workflow</a></li>
+  <li><a href="#rlr-hyper-parameter-tuning" id="toc-rlr-hyper-parameter-tuning" class="nav-link" data-scroll-target="#rlr-hyper-parameter-tuning"><span class="toc-section-number">0.6.4</span>  RLR Hyper-parameter Tuning</a></li>
+  <li><a href="#rlr-predict" id="toc-rlr-predict" class="nav-link" data-scroll-target="#rlr-predict"><span class="toc-section-number">0.6.5</span>  RLR Predict</a></li>
+  <li><a href="#rlr-confusion-matrix" id="toc-rlr-confusion-matrix" class="nav-link" data-scroll-target="#rlr-confusion-matrix"><span class="toc-section-number">0.6.6</span>  RLR Confusion Matrix</a></li>
   </ul></li>
-  <li><a href="#random-forest" id="toc-random-forest" class="nav-link" data-scroll-target="#random-forest"> <span class="header-section-number">0.7</span> Random Forest</a>
+  <li><a href="#random-forest" id="toc-random-forest" class="nav-link" data-scroll-target="#random-forest"><span class="toc-section-number">0.7</span>  Random Forest</a>
   <ul class="collapse">
-  <li><a href="#rf-model-spec---ranger" id="toc-rf-model-spec---ranger" class="nav-link" data-scroll-target="#rf-model-spec---ranger"> <span class="header-section-number">0.7.1</span> RF Model Spec - Ranger</a></li>
-  <li><a href="#rf-workflow" id="toc-rf-workflow" class="nav-link" data-scroll-target="#rf-workflow"> <span class="header-section-number">0.7.2</span> RF Workflow</a></li>
-  <li><a href="#rf-tuning---initial" id="toc-rf-tuning---initial" class="nav-link" data-scroll-target="#rf-tuning---initial"> <span class="header-section-number">0.7.3</span> RF Tuning - Initial</a></li>
-  <li><a href="#rf-graph-results" id="toc-rf-graph-results" class="nav-link" data-scroll-target="#rf-graph-results"> <span class="header-section-number">0.7.4</span> RF Graph Results</a></li>
-  <li><a href="#rf-final-model" id="toc-rf-final-model" class="nav-link" data-scroll-target="#rf-final-model"> <span class="header-section-number">0.7.5</span> RF Final Model</a></li>
-  <li><a href="#rf-final-workflow" id="toc-rf-final-workflow" class="nav-link" data-scroll-target="#rf-final-workflow"> <span class="header-section-number">0.7.6</span> RF Final Workflow</a></li>
-  <li><a href="#rf-parameter-importance" id="toc-rf-parameter-importance" class="nav-link" data-scroll-target="#rf-parameter-importance"> <span class="header-section-number">0.7.7</span> RF Parameter Importance</a></li>
-  <li><a href="#rf-final-fit" id="toc-rf-final-fit" class="nav-link" data-scroll-target="#rf-final-fit"> <span class="header-section-number">0.7.8</span> RF Final Fit</a></li>
-  <li><a href="#rf-predict" id="toc-rf-predict" class="nav-link" data-scroll-target="#rf-predict"> <span class="header-section-number">0.7.9</span> RF Predict</a></li>
-  <li><a href="#rf-performance-on-test-set" id="toc-rf-performance-on-test-set" class="nav-link" data-scroll-target="#rf-performance-on-test-set"> <span class="header-section-number">0.7.10</span> RF Performance on Test Set</a></li>
-  <li><a href="#rf-confusion-matrix" id="toc-rf-confusion-matrix" class="nav-link" data-scroll-target="#rf-confusion-matrix"> <span class="header-section-number">0.7.11</span> RF Confusion Matrix</a></li>
+  <li><a href="#rf-model-spec---ranger" id="toc-rf-model-spec---ranger" class="nav-link" data-scroll-target="#rf-model-spec---ranger"><span class="toc-section-number">0.7.1</span>  RF Model Spec - Ranger</a></li>
+  <li><a href="#rf-workflow" id="toc-rf-workflow" class="nav-link" data-scroll-target="#rf-workflow"><span class="toc-section-number">0.7.2</span>  RF Workflow</a></li>
+  <li><a href="#rf-tuning---initial" id="toc-rf-tuning---initial" class="nav-link" data-scroll-target="#rf-tuning---initial"><span class="toc-section-number">0.7.3</span>  RF Tuning - Initial</a></li>
+  <li><a href="#rf-graph-results" id="toc-rf-graph-results" class="nav-link" data-scroll-target="#rf-graph-results"><span class="toc-section-number">0.7.4</span>  RF Graph Results</a></li>
+  <li><a href="#rf-final-model" id="toc-rf-final-model" class="nav-link" data-scroll-target="#rf-final-model"><span class="toc-section-number">0.7.5</span>  RF Final Model</a></li>
+  <li><a href="#rf-final-workflow" id="toc-rf-final-workflow" class="nav-link" data-scroll-target="#rf-final-workflow"><span class="toc-section-number">0.7.6</span>  RF Final Workflow</a></li>
+  <li><a href="#rf-parameter-importance" id="toc-rf-parameter-importance" class="nav-link" data-scroll-target="#rf-parameter-importance"><span class="toc-section-number">0.7.7</span>  RF Parameter Importance</a></li>
+  <li><a href="#rf-final-fit" id="toc-rf-final-fit" class="nav-link" data-scroll-target="#rf-final-fit"><span class="toc-section-number">0.7.8</span>  RF Final Fit</a></li>
+  <li><a href="#rf-predict" id="toc-rf-predict" class="nav-link" data-scroll-target="#rf-predict"><span class="toc-section-number">0.7.9</span>  RF Predict</a></li>
+  <li><a href="#rf-performance-on-test-set" id="toc-rf-performance-on-test-set" class="nav-link" data-scroll-target="#rf-performance-on-test-set"><span class="toc-section-number">0.7.10</span>  RF Performance on Test Set</a></li>
+  <li><a href="#rf-confusion-matrix" id="toc-rf-confusion-matrix" class="nav-link" data-scroll-target="#rf-confusion-matrix"><span class="toc-section-number">0.7.11</span>  RF Confusion Matrix</a></li>
   </ul></li>
-  <li><a href="#xg-boost---usemodel" id="toc-xg-boost---usemodel" class="nav-link" data-scroll-target="#xg-boost---usemodel"> <span class="header-section-number">0.8</span> XG Boost - Usemodel</a>
+  <li><a href="#xg-boost---usemodel" id="toc-xg-boost---usemodel" class="nav-link" data-scroll-target="#xg-boost---usemodel"><span class="toc-section-number">0.8</span>  XG Boost - Usemodel</a>
   <ul class="collapse">
-  <li><a href="#xgb---usemodel-library-specs" id="toc-xgb---usemodel-library-specs" class="nav-link" data-scroll-target="#xgb---usemodel-library-specs"> <span class="header-section-number">0.8.1</span> XGB - Usemodel Library specs</a></li>
-  <li><a href="#xgb---parameters" id="toc-xgb---parameters" class="nav-link" data-scroll-target="#xgb---parameters"> <span class="header-section-number">0.8.2</span> XGB - Parameters</a></li>
-  <li><a href="#xgb---usemodel-best-parameter-settings" id="toc-xgb---usemodel-best-parameter-settings" class="nav-link" data-scroll-target="#xgb---usemodel-best-parameter-settings"> <span class="header-section-number">0.8.3</span> XGB - Usemodel Best Parameter Settings</a></li>
-  <li><a href="#xgb---usemodel-parameter-ranking---vip" id="toc-xgb---usemodel-parameter-ranking---vip" class="nav-link" data-scroll-target="#xgb---usemodel-parameter-ranking---vip"> <span class="header-section-number">0.8.4</span> XGB - Usemodel Parameter Ranking - VIP</a></li>
-  <li><a href="#xgb---usemodel-performance" id="toc-xgb---usemodel-performance" class="nav-link" data-scroll-target="#xgb---usemodel-performance"> <span class="header-section-number">0.8.5</span> XGB - Usemodel Performance</a></li>
-  <li><a href="#xgb---usemodel-confusion-matrix" id="toc-xgb---usemodel-confusion-matrix" class="nav-link" data-scroll-target="#xgb---usemodel-confusion-matrix"> <span class="header-section-number">0.8.6</span> XGB - Usemodel Confusion Matrix</a></li>
+  <li><a href="#xgb---usemodel-library-specs" id="toc-xgb---usemodel-library-specs" class="nav-link" data-scroll-target="#xgb---usemodel-library-specs"><span class="toc-section-number">0.8.1</span>  XGB - Usemodel Library specs</a></li>
+  <li><a href="#xgb---parameters" id="toc-xgb---parameters" class="nav-link" data-scroll-target="#xgb---parameters"><span class="toc-section-number">0.8.2</span>  XGB - Parameters</a></li>
+  <li><a href="#xgb---usemodel-best-parameter-settings" id="toc-xgb---usemodel-best-parameter-settings" class="nav-link" data-scroll-target="#xgb---usemodel-best-parameter-settings"><span class="toc-section-number">0.8.3</span>  XGB - Usemodel Best Parameter Settings</a></li>
+  <li><a href="#xgb---usemodel-parameter-ranking---vip" id="toc-xgb---usemodel-parameter-ranking---vip" class="nav-link" data-scroll-target="#xgb---usemodel-parameter-ranking---vip"><span class="toc-section-number">0.8.4</span>  XGB - Usemodel Parameter Ranking - VIP</a></li>
+  <li><a href="#xgb---usemodel-performance" id="toc-xgb---usemodel-performance" class="nav-link" data-scroll-target="#xgb---usemodel-performance"><span class="toc-section-number">0.8.5</span>  XGB - Usemodel Performance</a></li>
+  <li><a href="#xgb---usemodel-confusion-matrix" id="toc-xgb---usemodel-confusion-matrix" class="nav-link" data-scroll-target="#xgb---usemodel-confusion-matrix"><span class="toc-section-number">0.8.6</span>  XGB - Usemodel Confusion Matrix</a></li>
   </ul></li>
-  <li><a href="#xg-boost---base-recipe" id="toc-xg-boost---base-recipe" class="nav-link" data-scroll-target="#xg-boost---base-recipe"> <span class="header-section-number">0.9</span> XG Boost - Base Recipe</a>
+  <li><a href="#xg-boost---base-recipe" id="toc-xg-boost---base-recipe" class="nav-link" data-scroll-target="#xg-boost---base-recipe"><span class="toc-section-number">0.9</span>  XG Boost - Base Recipe</a>
   <ul class="collapse">
-  <li><a href="#xgb-model-spec" id="toc-xgb-model-spec" class="nav-link" data-scroll-target="#xgb-model-spec"> <span class="header-section-number">0.9.1</span> XGB Model Spec</a></li>
-  <li><a href="#xgb-workflow" id="toc-xgb-workflow" class="nav-link" data-scroll-target="#xgb-workflow"> <span class="header-section-number">0.9.2</span> XGB Workflow</a></li>
-  <li><a href="#xgb-hyper-parameter-tuning" id="toc-xgb-hyper-parameter-tuning" class="nav-link" data-scroll-target="#xgb-hyper-parameter-tuning"> <span class="header-section-number">0.9.3</span> XGB Hyper-Parameter Tuning</a></li>
-  <li><a href="#xgb-performance-on-training-test-set" id="toc-xgb-performance-on-training-test-set" class="nav-link" data-scroll-target="#xgb-performance-on-training-test-set"> <span class="header-section-number">0.9.4</span> XGB Performance on Training Test Set</a></li>
-  <li><a href="#xgb-confusion-matrix" id="toc-xgb-confusion-matrix" class="nav-link" data-scroll-target="#xgb-confusion-matrix"> <span class="header-section-number">0.9.5</span> XGB Confusion Matrix</a></li>
+  <li><a href="#xgb-model-spec" id="toc-xgb-model-spec" class="nav-link" data-scroll-target="#xgb-model-spec"><span class="toc-section-number">0.9.1</span>  XGB Model Spec</a></li>
+  <li><a href="#xgb-workflow" id="toc-xgb-workflow" class="nav-link" data-scroll-target="#xgb-workflow"><span class="toc-section-number">0.9.2</span>  XGB Workflow</a></li>
+  <li><a href="#xgb-hyper-parameter-tuning" id="toc-xgb-hyper-parameter-tuning" class="nav-link" data-scroll-target="#xgb-hyper-parameter-tuning"><span class="toc-section-number">0.9.3</span>  XGB Hyper-Parameter Tuning</a></li>
+  <li><a href="#xgb-performance-on-training-test-set" id="toc-xgb-performance-on-training-test-set" class="nav-link" data-scroll-target="#xgb-performance-on-training-test-set"><span class="toc-section-number">0.9.4</span>  XGB Performance on Training Test Set</a></li>
+  <li><a href="#xgb-confusion-matrix" id="toc-xgb-confusion-matrix" class="nav-link" data-scroll-target="#xgb-confusion-matrix"><span class="toc-section-number">0.9.5</span>  XGB Confusion Matrix</a></li>
   </ul></li>
-  <li><a href="#neural-net" id="toc-neural-net" class="nav-link" data-scroll-target="#neural-net"> <span class="header-section-number">0.10</span> Neural Net</a>
+  <li><a href="#neural-net" id="toc-neural-net" class="nav-link" data-scroll-target="#neural-net"><span class="toc-section-number">0.10</span>  Neural Net</a>
   <ul class="collapse">
-  <li><a href="#nn-model" id="toc-nn-model" class="nav-link" data-scroll-target="#nn-model"> <span class="header-section-number">0.10.1</span> NN Model</a></li>
-  <li><a href="#nn-workflow" id="toc-nn-workflow" class="nav-link" data-scroll-target="#nn-workflow"> <span class="header-section-number">0.10.2</span> NN Workflow</a></li>
-  <li><a href="#nn-parameters" id="toc-nn-parameters" class="nav-link" data-scroll-target="#nn-parameters"> <span class="header-section-number">0.10.3</span> NN Parameters</a></li>
-  <li><a href="#nn-hyper-parameter-tuning" id="toc-nn-hyper-parameter-tuning" class="nav-link" data-scroll-target="#nn-hyper-parameter-tuning"> <span class="header-section-number">0.10.4</span> NN Hyper-Parameter Tuning</a></li>
-  <li><a href="#nn-best-parameters-and-finalise-workflow" id="toc-nn-best-parameters-and-finalise-workflow" class="nav-link" data-scroll-target="#nn-best-parameters-and-finalise-workflow"> <span class="header-section-number">0.10.5</span> NN Best Parameters and Finalise Workflow</a></li>
-  <li><a href="#nn-accuracy---traintest-set" id="toc-nn-accuracy---traintest-set" class="nav-link" data-scroll-target="#nn-accuracy---traintest-set"> <span class="header-section-number">0.10.6</span> NN Accuracy - Train/Test Set</a></li>
-  <li><a href="#nn-auc" id="toc-nn-auc" class="nav-link" data-scroll-target="#nn-auc"> <span class="header-section-number">0.10.7</span> NN AUC</a></li>
-  <li><a href="#nn-predictions-on-traintest-set" id="toc-nn-predictions-on-traintest-set" class="nav-link" data-scroll-target="#nn-predictions-on-traintest-set"> <span class="header-section-number">0.10.8</span> NN Predictions on Train/Test Set</a></li>
-  <li><a href="#nn-confusion-matrix" id="toc-nn-confusion-matrix" class="nav-link" data-scroll-target="#nn-confusion-matrix"> <span class="header-section-number">0.10.9</span> NN Confusion Matrix</a></li>
+  <li><a href="#nn-model" id="toc-nn-model" class="nav-link" data-scroll-target="#nn-model"><span class="toc-section-number">0.10.1</span>  NN Model</a></li>
+  <li><a href="#nn-workflow" id="toc-nn-workflow" class="nav-link" data-scroll-target="#nn-workflow"><span class="toc-section-number">0.10.2</span>  NN Workflow</a></li>
+  <li><a href="#nn-parameters" id="toc-nn-parameters" class="nav-link" data-scroll-target="#nn-parameters"><span class="toc-section-number">0.10.3</span>  NN Parameters</a></li>
+  <li><a href="#nn-hyper-parameter-tuning" id="toc-nn-hyper-parameter-tuning" class="nav-link" data-scroll-target="#nn-hyper-parameter-tuning"><span class="toc-section-number">0.10.4</span>  NN Hyper-Parameter Tuning</a></li>
+  <li><a href="#nn-best-parameters-and-finalise-workflow" id="toc-nn-best-parameters-and-finalise-workflow" class="nav-link" data-scroll-target="#nn-best-parameters-and-finalise-workflow"><span class="toc-section-number">0.10.5</span>  NN Best Parameters and Finalise Workflow</a></li>
+  <li><a href="#nn-accuracy---traintest-set" id="toc-nn-accuracy---traintest-set" class="nav-link" data-scroll-target="#nn-accuracy---traintest-set"><span class="toc-section-number">0.10.6</span>  NN Accuracy - Train/Test Set</a></li>
+  <li><a href="#nn-auc" id="toc-nn-auc" class="nav-link" data-scroll-target="#nn-auc"><span class="toc-section-number">0.10.7</span>  NN AUC</a></li>
+  <li><a href="#nn-predictions-on-traintest-set" id="toc-nn-predictions-on-traintest-set" class="nav-link" data-scroll-target="#nn-predictions-on-traintest-set"><span class="toc-section-number">0.10.8</span>  NN Predictions on Train/Test Set</a></li>
+  <li><a href="#nn-confusion-matrix" id="toc-nn-confusion-matrix" class="nav-link" data-scroll-target="#nn-confusion-matrix"><span class="toc-section-number">0.10.9</span>  NN Confusion Matrix</a></li>
   </ul></li>
-  <li><a href="#stack-models" id="toc-stack-models" class="nav-link" data-scroll-target="#stack-models"> <span class="header-section-number">0.11</span> Stack Models</a>
+  <li><a href="#stack-models" id="toc-stack-models" class="nav-link" data-scroll-target="#stack-models"><span class="toc-section-number">0.11</span>  Stack Models</a>
   <ul class="collapse">
-  <li><a href="#stack-recipe" id="toc-stack-recipe" class="nav-link" data-scroll-target="#stack-recipe"> <span class="header-section-number">0.11.1</span> Stack Recipe</a></li>
-  <li><a href="#stack-controls" id="toc-stack-controls" class="nav-link" data-scroll-target="#stack-controls"> <span class="header-section-number">0.11.2</span> Stack Controls</a></li>
-  <li><a href="#stack-blend" id="toc-stack-blend" class="nav-link" data-scroll-target="#stack-blend"> <span class="header-section-number">0.11.3</span> Stack Blend</a></li>
-  <li><a href="#stack-weights" id="toc-stack-weights" class="nav-link" data-scroll-target="#stack-weights"> <span class="header-section-number">0.11.4</span> Stack Weights</a></li>
-  <li><a href="#fit-member-models" id="toc-fit-member-models" class="nav-link" data-scroll-target="#fit-member-models"> <span class="header-section-number">0.11.5</span> Fit Member Models</a></li>
-  <li><a href="#stack-predict" id="toc-stack-predict" class="nav-link" data-scroll-target="#stack-predict"> <span class="header-section-number">0.11.6</span> Stack Predict</a></li>
+  <li><a href="#stack-recipe" id="toc-stack-recipe" class="nav-link" data-scroll-target="#stack-recipe"><span class="toc-section-number">0.11.1</span>  Stack Recipe</a></li>
+  <li><a href="#stack-controls" id="toc-stack-controls" class="nav-link" data-scroll-target="#stack-controls"><span class="toc-section-number">0.11.2</span>  Stack Controls</a></li>
+  <li><a href="#stack-blend" id="toc-stack-blend" class="nav-link" data-scroll-target="#stack-blend"><span class="toc-section-number">0.11.3</span>  Stack Blend</a></li>
+  <li><a href="#stack-weights" id="toc-stack-weights" class="nav-link" data-scroll-target="#stack-weights"><span class="toc-section-number">0.11.4</span>  Stack Weights</a></li>
+  <li><a href="#fit-member-models" id="toc-fit-member-models" class="nav-link" data-scroll-target="#fit-member-models"><span class="toc-section-number">0.11.5</span>  Fit Member Models</a></li>
+  <li><a href="#stack-predict" id="toc-stack-predict" class="nav-link" data-scroll-target="#stack-predict"><span class="toc-section-number">0.11.6</span>  Stack Predict</a></li>
   </ul></li>
-  <li><a href="#join-model-prediction-data" id="toc-join-model-prediction-data" class="nav-link" data-scroll-target="#join-model-prediction-data"> <span class="header-section-number">0.12</span> Join Model Prediction Data</a></li>
-  <li><a href="#all-metrics" id="toc-all-metrics" class="nav-link" data-scroll-target="#all-metrics"> <span class="header-section-number">0.13</span> All Metrics</a></li>
-  <li><a href="#final-submission" id="toc-final-submission" class="nav-link" data-scroll-target="#final-submission"> <span class="header-section-number">1</span> Final Submission</a></li>
+  <li><a href="#join-model-prediction-data" id="toc-join-model-prediction-data" class="nav-link" data-scroll-target="#join-model-prediction-data"><span class="toc-section-number">0.12</span>  Join Model Prediction Data</a></li>
+  <li><a href="#all-metrics" id="toc-all-metrics" class="nav-link" data-scroll-target="#all-metrics"><span class="toc-section-number">0.13</span>  All Metrics</a></li>
+  <li><a href="#final-submission" id="toc-final-submission" class="nav-link" data-scroll-target="#final-submission"><span class="toc-section-number">1</span>  Final Submission</a></li>
   </ul>
 </nav>
     </div>
@@ -3542,6 +3551,16 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         }
       }
     }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
   }
   const isFileUrl = () => { 
     return window.location.protocol === 'file:';
@@ -3593,7 +3612,9 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   // Switch to dark mode if need be
   if (hasAlternateSentinel()) {
     toggleColorMode(true);
-  } 
+  } else {
+    toggleColorMode(false);
+  }
   const icon = "";
   const anchorJS = new window.AnchorJS();
   anchorJS.options = {
@@ -3615,7 +3636,24 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     button.classList.add('code-copy-button-checked');
     var currentTitle = button.getAttribute("title");
     button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
     setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
       button.setAttribute("title", currentTitle);
       button.classList.remove('code-copy-button-checked');
     }, 1000);
@@ -3694,31 +3732,50 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   for (var i=0; i<noterefs.length; i++) {
     const ref = noterefs[i];
     tippyHover(ref, function() {
-      let href = ref.getAttribute('href');
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
       return note.innerHTML;
     });
   }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
   var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
   for (var i=0; i<bibliorefs.length; i++) {
     const ref = bibliorefs[i];
-    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
-    tippyHover(ref, function() {
-      var popup = window.document.createElement('div');
-      cites.forEach(function(cite) {
-        var citeDiv = window.document.createElement('div');
-        citeDiv.classList.add('hanging-indent');
-        citeDiv.classList.add('csl-entry');
-        var biblioDiv = window.document.getElementById('ref-' + cite);
-        if (biblioDiv) {
-          citeDiv.innerHTML = biblioDiv.innerHTML;
-        }
-        popup.appendChild(citeDiv);
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
       });
-      return popup.innerHTML;
-    });
+    }
   }
 });
 </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
