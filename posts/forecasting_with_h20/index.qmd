@@ -29,7 +29,7 @@ cache: true
 
 ## Introduction
 
-This analyses is one part of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:
+This analysis is one part of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:
 
 1.  Some pre analysis (basic EDA analysis is not covered as already included in previous posts)
 
@@ -304,6 +304,8 @@ prediction %>%
 
 
 ```
+
+I could compare the above prediction to the actuals, and i did on the base analyses, but it is a bit pointless due to the covid cliff, which is not in the analysis. Might include it as/if data is updated and some normality resumes.
 
 ## Save Model and Close H2o connection
 
