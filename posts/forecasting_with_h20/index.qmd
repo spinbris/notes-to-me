@@ -29,7 +29,7 @@ cache: true
 
 ## Introduction
 
-This analysis is one part of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:
+This analysis is one section of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:
 
 1.  Some pre analysis (basic EDA analysis is not covered as already included in previous posts)
 
