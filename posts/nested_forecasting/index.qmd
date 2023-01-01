@@ -1,0 +1,923 @@
+---
+title: "Flight Forecast with ML Nested models"
+author: "Stephen J Parton"
+date: "2022-12-12"
+categories: [code, analytics, flights, forecasting]
+website:
+  sidebar:
+    style: "docked"
+    search: true
+format: 
+  html: 
+    theme: litera
+toc: true
+toc-title: Contents
+number-sections: true
+number-depth: 3
+code-fold: true
+code-summary: "Code"
+code-tools: true
+execute: 
+  echo: true
+  warning: false
+  error: false
+freeze: true
+cache: true
+---
+
+## Introduction
+
+This file runs a nested forecasting approach on top 10 Australian domestic routes data prior to covid. This is just an exploratory exercise and remains a work in progress.
+
+This analysis uses ML Models as follows
+
+-   Auto ARIMA
+
+-   XGBoost
+
+-   Prophet Boost
+
+-   Random Forest
+
+-   SVM
+
+-   Neural Net
+
+-   MARS
+
+-   THIEF
+
+Only XGBoost/ Prophet Boost have been tuned (based on Syd-Melb route only and using the same hyper-parameters as appropriate).
+
+The forecast period is 12 months from end of testing, which is July 2019, so missing the Covid dive, which is still shown.
+
+## Load Packages
+
+Tidyverse, Tidymodels, Modeltime, parallel processing etc.
+
+```{r, packages}
+#| echo: false
+#| warninng: false
+#| message: false
+
+# Time Series ML
+library(tidymodels)
+library(modeltime)
+#library(modeltime.gluonts)
+
+# Core
+library(tidyverse)
+library(lubridate)
+library(timetk)
+#library(knitr)
+library(kableExtra)
+library(gt)
+
+library(here)
+
+# Viz
+library(trelliscopejs)
+library(scales)
+library(plotly)
+
+# Timing & Parallel Processing
+library(tictoc)
+library(future)
+library(doFuture)
+library(doRNG)
+doFuture.rng.onMisuse = "ignore"
+
+
+
+```
+
+## Load Data
+
+Data has largely been pre-processed, and is loaded from rds files.
+
+```{r, data}
+
+#here()
+top_routes_prep_df <- read_rds(here("./posts/aust_domestic_flights/artifacts/top_routes_prep_df.rds"))
+
+start          <- "2001-01-01"
+end            <- "2019-07-01"
+horizon_nested <- 12
+end_precovid <- dmy("01-02-2020")
+#d2 <- dmy("01-07-2022")
+max_act   <- max(top_routes_prep_df$date)
+max_test  <- ymd(end)
+max_pred  <- max_test %m+% months(horizon_nested)
+
+
+filter_r       <- "N"
+city           <- "BRISBANE"
+top_x          <- 10
+
+# * Parallel Processing ----
+registerDoFuture()
+n_cores <- parallel::detectCores()
+plan(
+  strategy = cluster,
+  workers  = parallel::makeCluster(n_cores)
+) 
+
+```
+
+## Wrangling
+
+Some initial wrangling
+
+```{r, wrangling}
+#| warning: false
+
+
+route_prep <- top_routes_prep_df %>%
+  select(route,date,passenger_trips) %>%
+  group_by(route) %>%
+  summarise_by_time(date, .by = "month", passenger_trips = sum(passenger_trips)) %>%
+  pad_by_time(date, .by       = "month",.pad_value = 0)
+
+
+topx <- top_routes_prep_df %>% 
+  group_by(route) %>% 
+  summarise(passenger_trips = sum(passenger_trips)) %>% 
+  ungroup() %>% 
+  slice_max(passenger_trips, n=top_x) %>% 
+  arrange(desc(passenger_trips)) %>% 
+  select(route) %>% 
+  pull() %>% 
+  as.character()
+
+route_prep_raw <- route_prep %>%
+  filter(route %in% topx ) %>% 
+  filter_by_time(.date_var    = date,.start_date = start, .end_date = end ) %>%
+  ungroup() %>%
+  mutate(passenger_trips      = log1p(passenger_trips)) %>%
+  group_by(route)
+
+route_prep_validation <- route_prep %>%
+  filter(route %in% topx ) %>% 
+  filter(date > max_test ) %>%
+  ungroup() %>%
+  mutate(passenger_trips      = log1p(passenger_trips)) %>%
+  group_by(route)
+
+
+# * Nested Time Series ----
+route_prep_nested <- route_prep_raw %>%
+  extend_timeseries(
+    .id_var        = route,
+    .date_var      = date,
+    .length_future = horizon_nested
+
+  ) %>%
+  tk_augment_fourier(date,.periods = c(3,6,12)) %>%
+  tk_augment_lags(passenger_trips, .lags = 12) %>%
+  tk_augment_slidify(
+    passenger_trips_lag12,
+     .f       = ~mean(.x,na.rm = T),
+     .period  = c(.25 * 12,.5 * 12, 12),
+     .partial = T,
+     .align   = "center"
+  ) %>%
+
+  nest_timeseries(
+    .id_var        = route,
+    .length_future = horizon_nested
+  ) %>%
+  split_nested_timeseries(
+    .length_test   = horizon_nested
+  ) %>%
+  ungroup()
+  #rowid_to_column(var = "rowid")
+
+route_prep_nested_train <- extract_nested_train_split(route_prep_nested)
+route_prep_nested_test  <- extract_nested_test_split(route_prep_nested)
+
+
+
+max_train <- max(route_prep_nested_train$date)
+
+```
+
+Top Routes, ordered in descending order (of passengers numbers over total review period) :
+
+```{r}
+
+topx %>% kable()
+```
+
+## Recipes
+
+3 Recipes have been established:
+
+-   Base Recipe
+
+-   Auto Arima Recipe
+
+-   Tunable XG Boost Recipe - which is not run here as hyperparameter tuning results were hard-coded into recipe to save processing time here.
+
+### Recipe - Base
+
+Used in all
+
+```{r, recipe_base}
+#| warning: false
+#| #message:false
+
+# * Base Recipe ----
+recipe_spec <- recipe(
+  passenger_trips ~ .,
+  route_prep_nested_train) %>%
+  step_timeseries_signature(date) %>%
+  step_rm(matches("(.xts$)|(.iso$)|(hour)|(minute)|(second)|(am.pm)|(day)|(week)")) %>%
+  #step_rm(date) %>%
+  step_normalize(date_index.num,date_year) %>%
+  #step_log(passenger_trips,offset = 1) %>%
+  #step_rm(date) %>%
+  step_zv(all_predictors()) %>%
+  step_impute_knn(all_predictors()) %>%
+  #step_other(route) %>%
+  step_dummy(all_nominal_predictors(), one_hot = TRUE)
+
+#recipe_spec %>% prep() %>% summary() %>% kable()
+```
+
+### Auto ARIMA
+
+```{r, recipe_auto_arima}
+
+
+# * Auto Arima Recipe ----
+
+recipe_spec_auto_arima <- recipe(
+  passenger_trips ~ date, data = route_prep_nested_train)
+
+
+recipe_spec_auto_arima %>% prep() %>% summary() %>% kable()
+
+  # + fourier_vec(date,period = 3)
+  # + fourier_vec(date,period = 6)
+  # + fourier_vec(date,period = 12)
+  # + month(date,label = T) ,
+  # data = route_prep_nested_train)
+```
+
+## Models and Workflows
+
+### Auto ARIMA
+
+#### Model
+
+```{r, model_auto_arima}
+#| warning: false
+#| message: false
+
+
+# ** Model----
+model_spec_auto_arima <- arima_reg() %>%
+  set_engine("auto_arima")
+
+model_spec_auto_arima
+recipe_spec_auto_arima %>% prep() %>% summary()
+
+
+```
+
+#### Workflow
+
+```{r, wflw_auto_arima}
+
+# ** Workflow ----
+wflw_fit_auto_arima <- workflow() %>%
+  add_model(model_spec_auto_arima) %>%
+  add_recipe(recipe_spec_auto_arima)
+
+wflw_fit_auto_arima
+
+```
+
+### XGBoost
+
+Parameters for this model were selected from a hyper-parameter tuning grid search, not shown here for brevity reasons. This, and related Prophet Boost models (using same parameters) are only models yet tuned.
+
+#### Model
+
+```{r, model_xgboost}
+
+# ** Model/Recipe ----
+model_spec_xgboost <- boost_tree(
+  mode           = "regression",
+  #copied from tuned xgboost:
+  mtry               = 20, 
+  min_n              = 3,
+  tree_depth         = 4,
+  learn_rate         = 0.075,
+  loss_reduction     = 0.000001,
+  trees              = 300
+) %>%
+  set_engine("xgboost")
+
+model_spec_xgboost 
+
+```
+
+#### Workflow
+
+```{r, wflw_xgboost}
+
+# ** workflow  ----
+wflw_fit_xgboost <- workflow() %>%
+  add_model(model_spec_xgboost) %>%
+  add_recipe(recipe_spec %>% update_role(date,new_role="indicator"))
+
+wflw_fit_xgboost
+
+```
+
+### Prophet Boost
+
+#### Model
+
+As mentioned, hyper parameters have been hard coded from the results a grid-search, which is not repeated in this doc, just to save time. The code is included, although all commented out:
+
+```{r, tuning_not used}
+# * XGBoost-tuned (maybe) ----
+# ** Model/Recipe
+
+#     model_spec_xgboost_tune <- boost_tree(
+#       mode           = "regression",
+#       mtry           = tune(),
+#       trees          = 300,
+#       min_n          = tune(),
+#       tree_depth     = tune(),
+#       learn_rate     = tune(),
+#       loss_reduction = tune()
+#       ) %>%
+#       set_engine("xgboost")
+#
+#
+# # ** ML Recipe - date as indicator ----
+# recipe_spec %>% prep() %>% summary()
+# recipe_spec_ml <- recipe_spec %>%
+#   update_role(date,new_role = "indicator")
+# recipe_spec_ml %>% prep() %>% summary()
+#
+#
+# # ** workflow for tuning ----
+# wflw_xgboost_tune <- workflow() %>%
+#   add_model(model_spec_xgboost_tune) %>%
+#   add_recipe(recipe_spec_ml)
+  #fit(route_prep_nested_train)
+
+
+
+# ** resamples - K-Fold -----
+
+# set.seed(123)
+# resamples_kfold <- route_prep_nested_train %>%
+#   vfold_cv()
+#
+# # unnests and graphs
+# resamples_data <- resamples_kfold %>%
+#   tk_time_series_cv_plan()
+#
+# resamples_data%>%
+#   group_by(.id) %>%
+#   plot_time_series_cv_plan(
+#     date,
+#     passenger_trips,
+#     .facet_ncol  = 2,
+#     .facet_nrow  = 2)
+
+# wflw_spec_xgboost_tune <- workflow() %>%
+#   add_model(model_spec_xgboost_tune) %>%
+#   add_recipe(recipe_spec_ml)
+
+# route_prep_nested_train %>%
+#   plot_time_series(.date_var = date,.value = passenger_trips)
+
+
+
+
+# ** tune XGBoost----
+# tic()
+# set.seed(123)
+# tune_results_xgboost <- wflw_xgboost_tune %>%
+#   tune_grid(
+#     resamples  = resamples_kfold,
+#     param_info = hardhat::extract_parameter_set_dials(wflw_xgboost_tune) %>%
+#       update(
+#         learn_rate = learn_rate(range = c(0.001,0.400), trans = NULL)
+#       ),
+#     grid = 10,
+#     control = control_grid(verbose = T, allow_par = T)
+#   )
+# toc()
+
+# ** Results
+
+# xgb_best_params <- tune_results_xgboost %>% show_best("rmse", n = Inf)
+# xgb_best_params
+#
+# wflw_fit_xgboost_tune <-wflw_xgboost_tune %>%
+#   finalize_workflow(parameters = xgb_best_params %>% slice(1))
+
+
+```
+
+Model with hard coded hyper-parameters:
+
+```{r, model_prophet_boost}
+
+model_spec_prophet_boost <- prophet_boost(
+  seasonality_daily  =  F,
+  seasonality_weekly = F,
+  seasonality_yearly = F,
+  #copied from tuned xgboost:
+  mtry               = 20, 
+  min_n              = 3,
+  tree_depth         = 4,
+  learn_rate         = 0.075,
+  loss_reduction     = 0.000001,
+  trees              = 300
+  ) %>%
+  set_engine("prophet_xgboost")
+
+model_spec_prophet_boost
+
+```
+
+#### Workflow
+
+```{r, wflw_prophet_boost}
+
+
+wflw_fit_prophet_boost <- workflow() %>%
+  add_model(model_spec_prophet_boost) %>%
+  add_recipe(recipe_spec)
+
+wflw_fit_prophet_boost
+
+```
+
+### SVM
+
+#### Workflow
+
+```{r, wflw_svm}
+
+# * SVM ----
+wflw_fit_svm <- workflow() %>%
+  add_model(
+    spec = svm_rbf(mode="regression") %>%
+      set_engine("kernlab")
+  ) %>%
+  add_recipe(recipe_spec%>% update_role(date,new_role="indicator"))
+  # fit(route_prep_nested_train)
+
+wflw_fit_svm
+```
+
+### Random Forest
+
+#### Workflow/Model
+
+```{r, wflw_rf}
+
+
+# * RANDOM FOREST ----
+wflw_fit_rf <- workflow() %>%
+  add_model(
+    spec = rand_forest(mode="regression") %>%
+      set_engine("ranger")
+  ) %>%
+  add_recipe(recipe_spec%>% update_role(date, new_role="indicator"))
+  # fit(route_prep_nested_train)
+wflw_fit_rf
+```
+
+### Neural Net
+
+#### Workflow/Model
+
+```{r, wflw_nnet}
+
+# * NNET ----
+wflw_fit_nnet <- workflow() %>%
+  add_model(
+    spec = mlp(mode="regression") %>%
+      set_engine("nnet")
+  ) %>%
+  add_recipe(recipe_spec%>% update_role(date, new_role="indicator"))
+  # fit(route_prep_nested_train)
+wflw_fit_nnet
+```
+
+### THIEF - Temporal Hierarchical Forecasting
+
+#### Workflow/Model
+
+```{r}
+
+
+# * THIEF - Temporal Hierachical Forecasting ----
+
+ wflw_thief <- workflow() %>%
+   add_model(temporal_hierarchy() %>% 
+               set_engine("thief")) %>%
+   add_recipe(recipe(passenger_trips ~ .,route_prep_nested_train %>% 
+                       select(passenger_trips,date)
+                     )
+              )
+
+ wflw_thief
+```
+
+## Nested Analysis
+
+### Combine Workflows in Modeltime Table
+
+```{r, nested_wflws}
+#| warning: false
+#| message: false
+
+
+nested_modeltime_tbl <- route_prep_nested %>%
+  modeltime_nested_fit(
+
+    model_list = list(
+      wflw_fit_auto_arima,
+      wflw_fit_xgboost,
+      wflw_fit_prophet_boost,
+      wflw_fit_svm,
+      wflw_fit_rf,
+      wflw_fit_nnet,
+      wflw_thief
+      # #wflw_fit_gluonts_deepar - not working because of id cols
+    ),
+
+    control = control_nested_fit(
+      verbose   = TRUE,
+      allow_par = TRUE
+    )
+  )
+
+#nested_modeltime_tbl %>% glimpse() %>% kable()
+
+```
+
+### Check Errors
+
+```{r, nested_errors}
+
+# * Review Any Errors ----
+nested_modeltime_tbl %>% 
+  extract_nested_error_report()
+
+```
+
+### Review Model Accuracy
+
+```{r, accuracy}
+
+# * Review Test Accuracy ----
+nested_modeltime_best <- nested_modeltime_tbl %>%
+  extract_nested_test_accuracy() %>% 
+  mutate(.model_desc = str_replace_all(.model_desc,"TEMPORAL HIERARCHICAL FORECASTING MODEL","THIEF")) %>%
+  mutate(.model_desc = str_replace_all(.model_desc,"PROPHET W XGBOOST ERRORS","PROPHET W XGBOOST")) 
+
+nested_modeltime_best%>%
+  
+  table_modeltime_accuracy(.round_digits = 3)
+
+```
+
+### Graph - Models Test Data
+
+```{r, graph,fig.width=10,fig.height=15}
+# |fig: 500
+
+# graph data
+nested_modeltime_tbl_grph_data <- nested_modeltime_tbl %>%
+  extract_nested_test_forecast() %>%
+  #slice_head(n=10) %>%
+  separate(route, "-", into = c("origin", "dest"), remove = FALSE) %>%
+  mutate(.value = expm1(.value)) %>%
+  mutate(.model_desc = str_replace_all(.model_desc,"TEMPORAL HIERARCHICAL FORECASTING MODEL","THIEF")) %>%
+  mutate(.model_desc = str_replace_all(.model_desc,"PROPHET W XGBOOST ERRORS","PROPHET W XGBOOST")) %>%
+  #filter(origin == city) %>%
+  #filter(dest %in% c("MELBOURNE","SYDNEY","CAIRNS","HOBART")) %>% 
+  group_by(route,.model_desc)
+
+
+
+# graph
+g <- nested_modeltime_tbl_grph_data %>%
+  select(route, model = .model_desc, date = .index,pax=.value) %>%
+  filter(year(date)>2014) %>%
+  ggplot(aes(x=date,y = pax/1000, color = model)) +
+  geom_line() +
+  scale_y_continuous(labels = comma) +
+  labs(x = "", y = "pax pm(000)") +
+  facet_wrap(~ route,  ncol=2, scales = "free") +
+  theme(legend.position = c(1,0)) +
+  theme(legend.text = element_text(size=5))
+
+ggplotly(g)
+```
+
+### Select Best Models by Route
+
+#### Summary Count by Model
+
+```{r, select_best}
+
+nested_best_tbl <- nested_modeltime_tbl %>%
+  modeltime_nested_select_best(metric = "rmse")
+
+# * Visualize Best Models ----
+nested_best_tbl_extract <- nested_best_tbl %>%
+  extract_nested_test_forecast() %>%
+  #slice_head(n=10) %>%
+  separate(route, "-", into = c("origin", "dest"), remove = FALSE) %>%
+  group_by(route)
+
+
+model_by_route <- nested_best_tbl_extract %>%
+  mutate(.model_desc = ifelse(.model_id ==2,"XGBOOST-tuned",.model_desc)) %>%
+   mutate(.model_desc = str_replace_all(.model_desc,"TEMPORAL HIERARCHICAL FORECASTING MODEL","THIEF")) %>%
+  mutate(.model_desc = str_replace_all(.model_desc,"PROPHET W XGBOOST ERRORS","PROPHET/XGBOOST"))
+
+model_by_route_summ <- model_by_route %>% 
+  filter(!.model_desc=="ACTUAL") %>%
+  summarise(model_desc = first(.model_desc)) %>%
+  ungroup() %>%
+  count(model_desc,name = "number") %>% 
+  arrange(desc(number))
+
+ model_by_route_summ %>% kable()
+
+
+```
+
+#### Best Model by Route
+
+```{r, best_by_route}
+
+best_by_route_summ <- model_by_route %>% 
+  filter(!.model_desc=="ACTUAL") %>%
+  summarise(route = first(route),model = first(.model_desc)) 
+
+ best_by_route_summ %>% kable()
+
+```
+
+### Graph - Forecast v Training Data Aggregated
+
+```{r, graph_training}
+#| message: false
+#| warning: false
+
+nested_best_tbl_extract_graph <- nested_best_tbl_extract %>%
+  mutate(.key = ifelse(.key =="actual","actual","forecast")) %>%
+  mutate(.value = expm1(.value),
+         .conf_lo = expm1(.conf_lo),
+         .conf_hi = expm1(.conf_hi)
+         ) %>%
+  group_by(.key,.index) %>%
+  summarise(.value = sum(.value),
+            conf_lo = sum(.conf_lo,na.rm = T),
+            conf_hi = sum(.conf_hi,na.rm = T))%>%
+  filter(.value>200) %>% 
+  filter(.index>dmy("01-01-2015"))
+
+
+g1 <- nested_best_tbl_extract_graph %>%
+  #filter((origin == city) | (dest == city) ) %>%
+  ggplot(aes(.index,.value/1000,color = .key)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = (conf_lo)/1000, ymax = (conf_hi)/1000,
+                  color = .key), alpha = 0.2) +
+  scale_y_continuous(labels=scales::comma) +
+  labs(title = "Forecast v Training Data",x="", y= "pax pm (000)")
+
+plotly::ggplotly(g1)
+
+
+```
+
+### Training Forecast Accuracy by best
+
+```{r, training_fcast_acc}
+#| echo: false
+#| warning: false
+#| message: false
+
+model_by_route_acc <- model_by_route %>% 
+    filter(.index >=min(route_prep_nested_test$date)) %>% 
+    mutate(.key = ifelse(.key =="actual","actual","forecast")) %>%
+    mutate(.value = expm1(.value),
+           date = .index) %>%
+    group_by(route,.key,date) %>%
+    summarise(pax_nos = sum(.value,na.rm = TRUE)) %>% 
+    pivot_wider(names_from = .key,
+              values_from  = pax_nos
+  )
+    
+model_by_route_acc %>% 
+    summarize_accuracy_metrics(
+        truth = actual,
+        estimate = forecast,
+        metric_set = extended_forecast_accuracy_metric_set()
+    ) %>% arrange(smape)
+```
+
+### Refit Nested Model
+
+```{r, refit}
+#| echo: false
+#| warning: false
+
+nested_best_refit_tbl <- nested_best_tbl %>%
+  modeltime_nested_refit(
+    control = control_refit(
+      verbose   = TRUE,
+      allow_par = TRUE
+    )
+  )
+
+```
+
+#### Graph
+
+```{r}
+
+
+# * Visualize Future Forecast ----
+
+nested_best_refit_tb_data <- nested_best_refit_tbl %>%
+  extract_nested_future_forecast() %>%
+
+  bind_rows(route_prep_validation %>%
+              mutate(.key = "actual_validn") %>%
+              select(route,.index = date,.key,.value = passenger_trips)) %>%
+  mutate(across(.value:.conf_hi, expm1)) %>%
+  separate(route, "-", into = c("origin", "dest"),remove = FALSE) %>%
+  mutate(.model_desc = ifelse(.model_id ==2,"XGBOOST-tuned",.model_desc),
+         .model_desc = ifelse(is.na(.model_id),.key,.model_desc)) %>%
+  mutate(.model_desc = str_replace_all(.model_desc,"TEMPORAL HIERARCHICAL FORECASTING MODEL","THIEF")) %>%
+  mutate(.model_desc = str_replace_all(.model_desc,"PROPHET W XGBOOST ERRORS","PROPHET/XGBOOST")) %>%
+  # filter(origin == city) %>%
+  # filter(dest %in% c("MELBOURNE","SYDNEY","CAIRNS","HOBART")) %>%
+  filter(year(.index)>2015) %>%
+  group_by(route)
+
+# nested_best_refit_tb_data %>%
+#   filter(.index > end,.key =="actual_validn")
+
+nested_best_refit_tb_data %>%
+  #filter((origin == city) | (dest == city) ) %>%
+  plot_modeltime_forecast(
+    .trelliscope = FALSE,
+    .facet_ncol  = 2,
+    .facet_nrow  = 2,
+    #.trelliscope_params = list(width ="100%")
+    )
+
+```
+
+Not a great performance against actuals, post covid in Feb 2020, but that is as expected! Pre-covid prediciton looks good.
+
+#### Accuracy of refit - Pre/post covid
+
+```{r,fig.width=10,fig.height=15}
+
+
+
+#unique(refit_model_by_route_acc_data$.key)
+
+               
+refit_model_by_route_acc_data <- nested_best_refit_tb_data %>% 
+    # filter(.index >max(route_prep_nested_test$date),
+    #        .index <= d2
+    # ) %>% 
+    #mutate(.key = ifelse(.key =="actual","actual","forecast")) %>%
+    mutate(pax_nos = .value,
+           date = .index) %>%
+    bind_rows(route_prep_validation %>%
+              mutate(.key = "actual",
+                     passenger_trips = expm1(passenger_trips)
+                     ) %>%
+              select(route,date,.key, pax_nos = passenger_trips)) %>% 
+    group_by(route, .key, date) %>%
+    summarise(pax_nos = sum(pax_nos,na.rm = TRUE)) %>% 
+    pivot_wider(names_from = .key,
+              values_from  = pax_nos
+  )
+
+
+
+accuracy_predn_precovid <- refit_model_by_route_acc_data %>% 
+   filter(date >  max_test,
+          date <= end_precovid
+   ) %>%
+    summarize_accuracy_metrics(
+        truth = actual_validn,
+        estimate = prediction,
+        metric_set = extended_forecast_accuracy_metric_set()
+    ) %>% arrange(smape)
+
+accuracy_predn_postcovid <- refit_model_by_route_acc_data %>% 
+   filter(date >  end_precovid,
+          date <= max_act
+   ) %>%
+    summarize_accuracy_metrics(
+        truth = actual_validn,
+        estimate = prediction,
+        metric_set = extended_forecast_accuracy_metric_set()
+    ) %>% arrange(smape)
+```
+
+For obvious reasons the accuracy of predictions against actuals is not great after the covid started (say Feb 2020), after all we did not even give the models the benefit of 'seeing' the covid crash. That was not the point of this analysis..although we may revisit as more post covid data is available.
+
+We can also check accuracy at an aggregated (across all routes) level.
+
+```{r, accuracy_aggr}
+
+refit_model_aggr_acc_data <- refit_model_by_route_acc_data %>% 
+  group_by(date) %>% 
+  summarise(actual   = sum(actual,na.rm = TRUE),
+            prediction = sum(prediction,na.rm = TRUE)) 
+  
+accuracy_predn_agg_precovid <- refit_model_aggr_acc_data %>% 
+   filter(date >  max_test,
+          date <= end_precovid
+   ) %>%
+    summarize_accuracy_metrics(
+        truth      = actual,
+        estimate   = prediction,
+        metric_set = extended_forecast_accuracy_metric_set()
+    ) %>% arrange(smape)
+
+  
+  accuracy_predn_agg_postcovid <- refit_model_aggr_acc_data %>% 
+   filter(date >  end_precovid,
+          date <= max_act
+   ) %>%
+    summarize_accuracy_metrics(
+        truth      = actual,
+        estimate   = prediction,
+        metric_set = extended_forecast_accuracy_metric_set()
+    ) %>% arrange(smape)
+
+agg_pred_accuracy <- accuracy_predn_agg_precovid %>% 
+  mutate(period = "pre_covid") %>% 
+  bind_rows(accuracy_predn_agg_postcovid %>% mutate(period = "post_covid")) %>% 
+  select(period,everything())
+
+agg_pred_accuracy %>% 
+  gt::gt() %>% 
+  gt::fmt_number(
+    columns = !period,
+    decimals = 3
+  )
+
+```
+
+Obviously the pre and post covid volumes are much different so a lot of measures are not appropriate, but all lool reasonable pre-covid and horrible thereafter, as expected.
+
+The following graph breaks the actuals into the various periods - training, testing, pre-covid prediction, post covid (Feb2020) prediction, and more recently when no prediction was attempted, so data is just for information.
+
+So the pre-covid prediction looks good, which is really all we were asking of the models.
+
+```{r, graph_agg_pred}
+
+refit_model_aggr_acc_data %>%
+  pivot_longer(
+    cols      = !date,
+    names_to  = "actual_prediction",
+    values_to = "pax_nos"
+  ) %>%  
+  mutate(actual_prediction = 
+    case_when(
+      actual_prediction == "prediction" ~ "prediction",
+      date              <= max_train    ~ "actual_train",
+      date              <= max_test     ~ "actual_test",
+      date              <= end_precovid ~ "actual_precovid_prediction",
+      date              <= max_pred     ~ "actual_postcovid_prediction",
+      TRUE                              ~ "actual_post_prediction"
+    )
+  ) %>% 
+  mutate(pax_nos = ifelse(pax_nos == 0, NA,pax_nos)) %>% 
+  ggplot(aes(x=date, y=pax_nos/1000,colour = actual_prediction ))+
+  geom_line() +
+  scale_y_continuous("Passenger No's pm (000)",
+    breaks = scales::breaks_extended(8),
+    labels = scales::label_comma()  
+  )
+  
+
+
+```

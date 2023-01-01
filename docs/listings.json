@@ -3,6 +3,7 @@
     "listing": "/index.html",
     "items": [
       "/posts/forecasting_with_h20/index.html",
+      "/posts/nested_forecasting/index.html",
       "/posts/aust_international_flights/index.html",
       "/posts/aust_domestic_flights/index.html",
       "/posts/post-with-code/index.html",
