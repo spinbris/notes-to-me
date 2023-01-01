@@ -362,5 +362,12 @@
     "title": "Introduction to leaflet.minicharts",
     "section": "Use in shiny web applications",
     "text": "Use in shiny web applications\nIn shiny applications, you can create nice transition effects by using functions leafletproxy and updateMinicharts/updateFlows. In the server function you first need to initialize the map and the minicharts. The important thing here is to use parameter layerId so that updateMinicharts can know which chart to update with which values.\n\nserver <- function(input, output, session) {\n  # Initialize map\n  output$mymap <- renderLeaflet(\n    leaflet() %>% addTiles() %>%\n      addMinicharts(lon, lat, layerId = uniqueChartIds)\n  )\n}\n\nThen use leafletProxy() and updateMinicharts in your reactive code:\n\nserver <- function(input, output, session) {\n  # Initialize map\n  ...\n  \n  # Update map\n  observe({\n    newdata <- getData(input$myinput)\n    \n    leafletProxy(\"mymap\") %>% \n      updateMinicharts(uniqueChartIds, chartdata = newdata, ...)\n  })\n}\n\nYou can find a live example here."
+  },
+  {
+    "objectID": "posts/nested_forecasting/index.html#introduction",
+    "href": "posts/nested_forecasting/index.html#introduction",
+    "title": "Flight Forecast with ML Nested models",
+    "section": "1 Introduction",
+    "text": "1 Introduction\nThis file runs a nested forecasting approach on top Australian domestic routes (70 or so) prior to covid. This is just an exploratory exercise and remains a work in progress.\nThis analysis uses ML Models as follows\n\nAuto ARIMA\nXGBoost\nProphet Boost\nRandom Forest\nSVM\nNeural Net\nMARS\nTHIEF\n\nOnly XGBoost/ Prophet Boost have been tuned (based on Syd-Melb route only and using the same hyper-parameters as appropriate).\nThe forecast period is 12 months from end of testing, which is July 2019, so missing the Covid dive, which is still shown."
   }
 ]

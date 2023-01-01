@@ -25,9 +25,11 @@ freeze: true
 cache: true
 ---
 
+![](thumbnail.png)
+
 ## Introduction
 
-This file runs a nested forecasting approach on top 10 Australian domestic routes data prior to covid. This is just an exploratory exercise and remains a work in progress.
+This file runs a nested forecasting approach on top Australian domestic routes (70 or so) prior to covid. This is just an exploratory exercise and remains a work in progress.
 
 This analysis uses ML Models as follows
 
