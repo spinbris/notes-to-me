@@ -708,7 +708,7 @@ plotly::ggplotly(g1)
 
 ```
 
-### Training Forecast Accuracy by best
+### Training Forecast Accuracy by Best Model - top 10 routes
 
 ```{r, training_fcast_acc}
 #| echo: false
@@ -752,7 +752,7 @@ nested_best_refit_tbl <- nested_best_tbl %>%
 
 #### Graph
 
-```{r}
+```{r,graph_fcast,fig.width=10,fig.height=15}
 
 
 # * Visualize Future Forecast ----
@@ -781,14 +781,14 @@ nested_best_refit_tb_data %>%
   #filter((origin == city) | (dest == city) ) %>%
   plot_modeltime_forecast(
     .trelliscope = FALSE,
-    .facet_ncol  = 2,
-    .facet_nrow  = 2,
+    .facet_ncol  = 2
+    
     #.trelliscope_params = list(width ="100%")
     )
 
 ```
 
-Not a great performance against actuals, post covid in Feb 2020, but that is as expected! Pre-covid prediciton looks good.
+Not a great performance against actuals, post covid in Feb 2020, but that is as expected! Pre-covid prediction looks good.
 
 #### Accuracy of refit - Pre/post covid
 
@@ -886,7 +886,7 @@ agg_pred_accuracy %>%
 
 ```
 
-Obviously the pre and post covid volumes are much different so a lot of measures are not appropriate, but all lool reasonable pre-covid and horrible thereafter, as expected.
+Obviously the pre and post covid volumes are much different so a lot of measures are not appropriate, but all look reasonable pre-covid and horrible thereafter, as expected.
 
 The following graph breaks the actuals into the various periods - training, testing, pre-covid prediction, post covid (Feb2020) prediction, and more recently when no prediction was attempted, so data is just for information.
 
