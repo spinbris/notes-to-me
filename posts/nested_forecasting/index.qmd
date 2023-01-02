@@ -902,6 +902,10 @@ The following graph breaks the actuals into the various periods - training, test
 
 So the pre-covid prediction looks good, which is really all we were asking of the models.
 
+Now lets graph the aggregated (all routes) prediction against actuals. Actuals are colour coded to show all modelling stages. For our purposes the key is the comparison of the "prediction" to the "actual_precovid_predictiton", ie the actuals after the test period but before covid kicks in (ie pink v green line), which looks pretty good. 
+
+The rest just highlights why forecast/predicitons can only go so far...
+
 ```{r, graph_agg_pred}
 
 refit_model_aggr_acc_data %>%
