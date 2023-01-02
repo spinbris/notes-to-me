@@ -919,8 +919,8 @@ refit_model_aggr_acc_data %>%
       actual_prediction == "prediction" ~ "prediction",
       date              <= max_train    ~ "actual_train",
       date              <= max_test     ~ "actual_test",
-      date              <= end_precovid ~ "actual_precovid_prediction",
-      date              <= max_pred     ~ "actual_postcovid_prediction",
+      date              <= end_precovid ~ "actual_precovid",
+      date              <= max_pred     ~ "actual_postcovid",
       TRUE                              ~ "actual_post_prediction"
     )
   ) %>% 

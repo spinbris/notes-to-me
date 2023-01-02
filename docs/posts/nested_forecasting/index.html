@@ -1924,7 +1924,7 @@ Computational engine: thief </code></pre>
 <p>So the pre-covid prediction looks good, which is really all we were asking of the models.</p>
 <p>Now lets graph the aggregated (all routes) prediction against actuals. Actuals are colour coded to show all modelling stages. For our purposes the key is the comparison of the “prediction” to the “actual_precovid_predictiton”, ie the actuals after the test period but before covid kicks in (ie pink v green line), which looks pretty good.</p>
 <p>The rest just highlights why forecast/predicitons can only go so far…</p>
-<div class="cell" data-hash="index_cache/html/graph_agg_pred_1ff65a24e7a7c26c56fadecf8e5537de">
+<div class="cell" data-hash="index_cache/html/graph_agg_pred_cfabbe65df0e2254b650f94e5073b0ad">
 <details>
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>refit_model_aggr_acc_data <span class="sc">%&gt;%</span></span>
@@ -1938,8 +1938,8 @@ Computational engine: thief </code></pre>
 <span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>      actual_prediction <span class="sc">==</span> <span class="st">"prediction"</span> <span class="sc">~</span> <span class="st">"prediction"</span>,</span>
 <span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> max_train    <span class="sc">~</span> <span class="st">"actual_train"</span>,</span>
 <span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> max_test     <span class="sc">~</span> <span class="st">"actual_test"</span>,</span>
-<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> end_precovid <span class="sc">~</span> <span class="st">"actual_precovid_prediction"</span>,</span>
-<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> max_pred     <span class="sc">~</span> <span class="st">"actual_postcovid_prediction"</span>,</span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> end_precovid <span class="sc">~</span> <span class="st">"actual_precovid"</span>,</span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> max_pred     <span class="sc">~</span> <span class="st">"actual_postcovid"</span>,</span>
 <span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span>                              <span class="sc">~</span> <span class="st">"actual_post_prediction"</span></span>
 <span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span> </span>
@@ -3181,8 +3181,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb44-920"><a href="#cb44-920" aria-hidden="true" tabindex="-1"></a>      actual_prediction <span class="sc">==</span> <span class="st">"prediction"</span> <span class="sc">~</span> <span class="st">"prediction"</span>,</span>
 <span id="cb44-921"><a href="#cb44-921" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> max_train    <span class="sc">~</span> <span class="st">"actual_train"</span>,</span>
 <span id="cb44-922"><a href="#cb44-922" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> max_test     <span class="sc">~</span> <span class="st">"actual_test"</span>,</span>
-<span id="cb44-923"><a href="#cb44-923" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> end_precovid <span class="sc">~</span> <span class="st">"actual_precovid_prediction"</span>,</span>
-<span id="cb44-924"><a href="#cb44-924" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> max_pred     <span class="sc">~</span> <span class="st">"actual_postcovid_prediction"</span>,</span>
+<span id="cb44-923"><a href="#cb44-923" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> end_precovid <span class="sc">~</span> <span class="st">"actual_precovid"</span>,</span>
+<span id="cb44-924"><a href="#cb44-924" aria-hidden="true" tabindex="-1"></a>      date              <span class="sc">&lt;=</span> max_pred     <span class="sc">~</span> <span class="st">"actual_postcovid"</span>,</span>
 <span id="cb44-925"><a href="#cb44-925" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span>                              <span class="sc">~</span> <span class="st">"actual_post_prediction"</span></span>
 <span id="cb44-926"><a href="#cb44-926" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb44-927"><a href="#cb44-927" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span> </span>
