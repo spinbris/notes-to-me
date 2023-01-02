@@ -53,6 +53,8 @@ Only XGBoost/ Prophet Boost have been tuned (based on Syd-Melb route only and us
 
 The forecast period is 12 months from end of testing, which is July 2019, so missing the Covid dive, which is still shown.
 
+This will all look better in a Shiny app, coming soon...
+
 ## Load Packages
 
 Tidyverse, Tidymodels, Modeltime, parallel processing etc.
