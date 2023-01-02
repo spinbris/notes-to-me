@@ -780,13 +780,21 @@ nested_best_refit_tb_data <- nested_best_refit_tbl %>%
 #   filter(.index > end,.key =="actual_validn")
 
 nested_best_refit_tb_data %>%
+  ggplot(aes(x= .index, y=.value, colour = .model_desc))+
+  geom_line() +
+  scale_y_continuous(labels = comma) +
+  labs(x = "", y = "pax pm(000)") +
+  facet_wrap(~ route,  ncol=2, scales = "free") +
+  theme(legend.position = c(1,0)) +
+  theme(legend.text = element_text(size=5))
+
   #filter((origin == city) | (dest == city) ) %>%
-  plot_modeltime_forecast(
-    .trelliscope = FALSE,
-    .facet_ncol  = 2
-    
-    #.trelliscope_params = list(width ="100%")
-    )
+  # plot_modeltime_forecast(
+  #   .trelliscope = FALSE,
+  #   .facet_ncol  = 1
+  #   
+  #   #.trelliscope_params = list(width ="100%")
+  #   )
 
 ```
 
