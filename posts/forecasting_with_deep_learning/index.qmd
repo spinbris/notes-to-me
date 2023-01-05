@@ -1,0 +1,537 @@
+---
+title: "Flight Forecastin with Deep Learning"
+author: "Stephen J Parton"
+date: "2022-10-25"
+categories: [code, analytics, flights, maps]
+website:
+  sidebar:
+    style: "docked"
+    search: true
+format: 
+  html: 
+    theme: litera
+toc: true
+toc-title: Contents
+number-sections: true
+number-depth: 3
+code-fold: true
+code-summary: "Code"
+code-tools: true
+execute: 
+  echo: true
+  warning: false
+  error: false
+freeze: false
+cache: false
+---
+
+## Introduction
+
+This analysis is one section of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:
+
+1\. Some pre analysis (basic EDA analysis is not covered as already included in previous posts)
+
+2\. 'Sequence' style models - ARIMA etc
+
+3\. ML style models - XGBoost etc including nesting and ensembling
+
+4\. Deep learning models (GLuonTS etc)
+
+5\. Summary of conclusions
+
+This post is in relation to the part 4. Approaches used are:
+
+-   GluonTS
+
+    -   DeepAR
+
+    -   N-BEATS
+
+## Load Libraries
+
+```{r, libraries}
+
+#| echo: false
+
+# Time Series ML
+library(tidymodels)
+library(modeltime)
+library(modeltime.gluonts)
+library(modeltime.ensemble)
+
+# Core
+library(tidyverse)
+library(lubridate)
+library(timetk)
+
+# Timing & Parallel Processing
+library(tictoc)
+library(future)
+library(doFuture)
+
+library(skimr)
+library(gt)
+library(here)
+```
+
+## Load Data
+
+Loading pre-prepared data as well as some parameters. Also setting up parallel processing.
+
+```{r, data}
+
+top_routes_prep_df <- read_rds(here("./posts/aust_domestic_flights/artifacts/top_routes_prep_df.rds"))
+
+start          <- "2001-01-01"
+end            <- "2019-07-01"
+horizon_nested <- 12
+end_precovid   <- dmy("01-02-2020")
+
+top_x          <- 10
+
+
+#d2 <- dmy("01-07-2022")
+max_act   <- max(top_routes_prep_df$date)
+max_test  <- ymd(end)
+max_pred  <- max_test %m+% months(horizon_nested)
+
+FORECAST_HORIZON <-  1*12
+lag_period       <-  1*12
+rolling_periods  <- c(3,6,12)
+
+# * Parallel Processing ----
+
+registerDoFuture()
+n_cores <- parallel::detectCores()
+plan(
+  strategy = cluster,
+  workers  = parallel::makeCluster(n_cores)
+)
+```
+
+## Preprocessing
+
+Some additional wrangling.
+
+```{r, wrangle}
+
+# topx list
+topx <- top_routes_prep_df %>% 
+  group_by(route) %>% 
+  summarise(passenger_trips = sum(passenger_trips)) %>% 
+  ungroup() %>% 
+  slice_max(passenger_trips, n=top_x) %>% 
+  arrange(desc(passenger_trips)) %>% 
+  select(route) %>% 
+  pull() %>% 
+  as.character()
+
+full_data_tbl <- top_routes_prep_df %>%
+  group_by(route) %>%
+  #initial wrangle
+  select(route,date,passenger_trips) %>%
+  mutate(route = as.character(route)) %>%
+  group_by(route) %>%
+  summarise_by_time(date, .by = "month", passenger_trips = sum(passenger_trips)) %>%
+  pad_by_time(
+    date,
+    .by       = "month",
+    .pad_value  = 0,
+    .start_date = min(top_routes_prep_df$date)) %>%
+  filter_by_time(.date_var    = date,.start_date = start, .end_date = end ) %>%
+  ungroup()
+
+full_data_tbl <- full_data_tbl %>%
+  tk_augment_timeseries_signature() %>%
+  select(-c(day:mday7)) %>%
+  select(-contains(".iso"),-contains(".xts"))
+
+full_data_tbl <- full_data_tbl %>%
+
+  #log transform target
+  mutate(passenger_trips      = log1p(passenger_trips),
+         index.num            = log1p(index.num),
+         diff                 = log1p(diff),
+         year                 = log1p(year)) %>%
+
+  #groupwise manipulation
+  group_by(route) %>%
+
+  future_frame(
+    .date_var   = date,
+    .length_out = FORECAST_HORIZON,
+    .bind_data  = TRUE
+  ) %>%
+
+  # Fourier
+  tk_augment_fourier(
+    .date_var = date,
+    .periods  = c(0.5 * FORECAST_HORIZON, FORECAST_HORIZON),
+    .K        = 1
+  ) %>%
+
+  # Lags
+
+  tk_augment_lags(
+    .value = passenger_trips,
+    .lags =  FORECAST_HORIZON
+  ) %>%
+
+  # Rolling Features
+  tk_augment_slidify(
+    .value   = passenger_trips_lag12,
+    .f       = ~ mean(.x,na.rm = TRUE),
+    .period  = c(6, FORECAST_HORIZON, 2 * FORECAST_HORIZON),
+    .partial = TRUE,
+    .align   = 'center'
+  ) %>%
+  ungroup() %>%
+
+  rowid_to_column(var = "rowid")
+
+
+
+data_prepared_tbl <- full_data_tbl %>%
+  filter(!is.na(passenger_trips)) %>%
+  drop_na()
+```
+
+## Split Data
+
+Split into training and testing sets.
+
+### Training Set (top 10 routes)
+
+```{r, split,fig.width=10,fig.height=15}
+
+
+splits <- data_prepared_tbl %>%
+  time_series_split(
+    date_var = date,
+    assess = FORECAST_HORIZON,
+    cumulative = TRUE
+  )
+
+
+
+training(splits) %>%
+  group_by(route) %>%
+  filter(route %in% topx) %>%
+  plot_time_series(
+    date,
+    passenger_trips,
+    .facet_ncol = 2,
+    .smooth = FALSE,
+    .title = "Training Splits"
+  )
+
+
+
+```
+
+### Testing Set (top 10 routes)
+
+```{r, testing,fig.width=10,fig.height=15}
+
+testing(splits) %>%
+  group_by(route) %>%
+  filter(route %in% topx) %>%
+  plot_time_series(
+    date,
+    passenger_trips,
+    .facet_ncol = 2,
+     .smooth = FALSE,
+    .title = "Testing Splits"
+    
+  )
+
+```
+
+## GLUONTS
+
+[GluonTS](https://ts.gluon.ai/stable/) is a Python package for probabilistic time series modeling, focusing on deep learning based models, based on [PyTorch](https://pytorch.org/) and [MXNet](https://mxnet.apache.org/). It was developed by Amazon.
+
+Some quotes from the GluonTS website are useful:
+
+" In forecasting, there is the implicit assumption that observable behaviours of the past that impact time series values continue into the future. "
+
+" Naturally, it's impossible to forecast the unpredictable. For instance, in 2019 it was virtually impossible to account for the possibility of travel restrictions due to the Covid-19 pandemic when trying to forecacst travel demand for 2020.
+
+Thus, forecasting operates on the caveat that the underlying factors that generate the time series values don't fundamentally change in the future. It is a tool to predict the ordinary and not the surprising."
+
+In this analysis we get around this 'problem, by only predicting passenger numbers up to the beginning of covid effect, and maybe soon post covid impact.
+
+Another key aspect of GluonTS is that it is probabilistic - predicting distributions of outcomes not just one value per time point. This is very useful.
+
+Another useful feature of GluonTS is that it includes the concept of Global models which enables many time series to be trained together and then used to make probabilistic predictions for each time series. In this analysis we have 70 or so time series - one for each route.
+
+GluonTS makes [many models](https://ts.gluon.ai/stable/getting_started/models.html) available in Python. A number of the models and concepts (eg hierarchical forecasting are based/wrapped on the Forecast package in R and the related textbook [Forecasting: Principles and Practice](https://otexts.com/fpp3/hts.html).
+
+This analysis uses the modeltime.gluonts package in R to interface to GluonTS. This R library enables an R interface to some of the GluonTS models. The following analysis uses:
+
+-   DeepAR
+
+-   N-Beats
+
+```{r,gluon_recipe}
+# 3.0 GLUONTS MODELS ----
+
+# * GLUON Recipe Specification ----
+
+#Gluon only needs Target,ID(groups) and date
+
+recipe_spec_gluon <- recipe(
+  passenger_trips ~ route + date + rowid,
+  data = training(splits)
+) %>%
+  update_role(rowid,new_role = "indicator")
+
+#recipe_spec_gluon %>% prep() %>% juice()
+
+recipe_spec_gluon %>% prep() %>% summary()
+```
+
+### 
+
+### DeepAR
+
+DeepAR was also developed by Amazon (as part of Sagemaker) which is particularly suited to cross-sectional analysis (eg routes), in that the time series are trained jointly across all routes (in our case).
+
+A few different combinations of epoch numbers and batch sizes per epoch have been tried
+
+#### DeepAR Model 1 - epochs 5; batch size/ epoch:50
+
+```{r,deepar_1}
+
+model_spec_1_deepar <- deep_ar(
+  #Required params
+  id                = "route",
+  freq              = "M",
+  prediction_length = FORECAST_HORIZON,
+
+  #trainer
+  epochs            = 5,
+
+  #DeepAR specific
+  cell_type         ="lstm"
+
+) %>%
+  set_engine("gluonts_deepar")
+
+#wflow
+wflw_fit_deepar_1 <- workflow() %>%
+  add_model(model_spec_1_deepar) %>%
+  add_recipe(recipe_spec_gluon) %>%
+  fit(training(splits))
+
+model_spec_1_deepar
+
+```
+
+#### DeepAR Model 2 - epochs 10; batch size/ epoch: 35 
+
+```{r,deepar_2}
+
+# Model 2: Increase Epochs, Adjust Num Batches per Epoch
+#model spec
+model_spec_2_deepar <- deep_ar(
+  id                    = "route",
+  freq                  = "M",
+  prediction_length     = FORECAST_HORIZON,
+
+  epochs                = 10,
+  num_batches_per_epoch = 35,
+
+  #DeepAR specific
+  cell_type             = "lstm"
+) %>%
+  set_engine("gluonts_deepar")
+
+#wflow
+wflw_fit_deepar_2 <- workflow() %>%
+  add_model(model_spec_2_deepar) %>%
+  add_recipe(recipe_spec_gluon) %>%
+  fit(training(splits))
+
+model_spec_2_deepar
+
+```
+
+#### DeepAR Model 3 - epochs 10; batch size/ epoch: 50 
+
+```{r,deepar_3}
+
+# Model 3: Increase Epochs, Adjust Num Batches Per Epoch, & Add Scaling
+
+model_spec_3_deepar <- deep_ar(
+  id                    = "route",
+  freq                  = "M",
+  prediction_length     = FORECAST_HORIZON,
+
+  epochs                = 10,
+  num_batches_per_epoch = 50,
+
+  scale                 = TRUE,
+
+  #DeepAR specific
+  cell_type             = "lstm"
+) %>%
+  set_engine("gluonts_deepar")
+
+#wflow
+wflw_fit_deepar_3 <- workflow() %>%
+  add_model(model_spec_3_deepar) %>%
+  add_recipe(recipe_spec_gluon) %>%
+  fit(training(splits))
+
+model_spec_3_deepar
+
+```
+
+### N-Beats (Neural Basis Expansion Analysis for Time Series)
+
+N-BEATS is [a type of neural network that was first described in a 2019 article by Oreshkin et al](https://arxiv.org/abs/1905.10437)
+
+Modeltime.gluonts package allows for 2 types of implementations: Standard or Ensemble. The following models include a mix of both, also with varying hyper-parameters.
+
+#### N-Beats Model 4 - Default (epochs:5)
+
+```{r,nbeats_4}
+
+
+# * N-BEATS Estimator ----
+
+# Model 4: N-BEATS default
+
+model_spec_nbeats_4 <- nbeats(
+  id                = "route",
+  freq              = "M",
+  prediction_length = FORECAST_HORIZON,
+
+  lookback_length   = 2 * FORECAST_HORIZON
+
+) %>%
+  set_engine("gluonts_nbeats")
+
+
+wflw_fit_nbeats_4 <- workflow() %>%
+  add_model(model_spec_nbeats_4) %>%
+  add_recipe(recipe_spec_gluon) %>%
+  fit(training(splits))
+
+model_spec_nbeats_4
+```
+
+#### N-Beats Model 5 - Default (epochs:5;loss fn:MASE)
+
+```{r, nbeats_5}
+
+# Model 5: N-BEATS, loss function:MASE, Reduce Epochs 2
+
+model_spec_nbeats_5 <- nbeats(
+  id                = "route",
+  freq              = "M",
+  prediction_length = FORECAST_HORIZON,
+
+  lookback_length   = 2 * FORECAST_HORIZON,
+  epochs            = 5,
+  loss_function     = "MASE"
+
+
+) %>%
+  set_engine("gluonts_nbeats")
+
+
+wflw_fit_nbeats_5 <- workflow() %>%
+  add_model(model_spec_nbeats_5) %>%
+  add_recipe(recipe_spec_gluon) %>%
+  fit(training(splits))
+
+model_spec_nbeats_5
+
+```
+
+#### N-Beats Model 6 - Default (ensemble; epochs:5; loss fn:MASE)
+
+```{r, nbeats_6}
+
+# Model 6: N-BEATS, Model 5 ensemble
+
+model_spec_nbeats_6 <- nbeats(
+  id                    = "route",
+  freq                  = "M",
+  prediction_length     = FORECAST_HORIZON,
+
+  lookback_length       = c(FORECAST_HORIZON, 2 * FORECAST_HORIZON),
+  epochs                = 5,
+  num_batches_per_epoch = 35,
+  loss_function         = "MASE",
+
+  bagging_size          = 2
+
+
+) %>%
+  set_engine("gluonts_nbeats_ensemble")
+
+
+wflw_fit_nbeats_6 <- workflow() %>%
+  add_model(model_spec_nbeats_6) %>%
+  add_recipe(recipe_spec_gluon) %>%
+  fit(training(splits))
+
+model_spec_nbeats_6
+```
+
+## Modeltime Comparison
+
+The following code puts all models in the opne table, renames them and produces an accuracy report, sorted by 'MAAPE', best at top.
+
+```{r,accuracy}
+
+
+
+# Modeltime Comparison ----
+
+model_tbl_submodels <- modeltime_table(
+  wflw_fit_deepar_1,
+  wflw_fit_deepar_2,
+  wflw_fit_deepar_3,
+  #
+  wflw_fit_nbeats_4,
+  wflw_fit_nbeats_5,
+  wflw_fit_nbeats_6
+)
+
+model_tbl_submodels <- model_tbl_submodels %>% 
+  update_model_description(1,"DEEPAR - unscaled, 5ep") %>% 
+  update_model_description(2,"DEEPAR - unscaled, 10ep") %>% 
+  update_model_description(3,"DEEPAR - scaled, 10ep") %>% 
+  update_model_description(4,"N-BEATS - 5ep") %>% 
+  update_model_description(5,"N-BEATS - 5ep,MASE") %>% 
+  update_model_description(6,"N-BEATS - ens, 5ep,MASE") 
+
+
+# # Forecast Accuracy
+
+model_tbl_submodels %>%
+  modeltime_accuracy(
+    testing(splits),
+    metric_set = extended_forecast_accuracy_metric_set()) %>% 
+  arrange(maape) %>% 
+   gt::gt() %>% 
+    gt::fmt_number(
+     columns = 4:10,
+      decimals = 3)
+
+```
+
+## Refit Models
+
+Models are then refit to full train/test data.
+
+```{r, refit}
+
+submodels_refitted_tbl <- model_tbl_submodels %>% 
+    modeltime_refit(data_prepared_tbl)
+
+```
