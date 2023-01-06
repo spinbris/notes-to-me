@@ -27,7 +27,15 @@ cache: true
 
 ## Introduction
 
-This analysis is one section of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:
+This post is in relation to the part 4. of a multipart ML/DL forecast post series on Australian flight patronage by route, pre-covid. Approaches used are:
+
+-   GluonTS
+
+    -   DeepAR
+
+    -   N-BEATS
+
+All parts of series:
 
 1\. Some pre analysis (basic EDA analysis is not covered as already included in previous posts)
 
@@ -38,14 +46,6 @@ This analysis is one section of a multi-part set of posts looking at forecasting
 4\. Deep learning models (GLuonTS etc)
 
 5\. Summary of conclusions
-
-This post is in relation to the part 4. Approaches used are:
-
--   GluonTS
-
-    -   DeepAR
-
-    -   N-BEATS
 
 ## Load Libraries
 

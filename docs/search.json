@@ -4,7 +4,7 @@
     "href": "posts/forecasting_with_deep_learning/index.html",
     "title": "Flight Forecasting with Deep Learning - Incomplete",
     "section": "",
-    "text": "This analysis is one section of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:\n1. Some pre analysis (basic EDA analysis is not covered as already included in previous posts)\n2. ‘Sequence’ style models - ARIMA etc\n3. ML style models - XGBoost etc including nesting and ensembling\n4. Deep learning models (GLuonTS etc)\n5. Summary of conclusions\nThis post is in relation to the part 4. Approaches used are:\n\nGluonTS\n\nDeepAR\nN-BEATS"
+    "text": "This post is in relation to the part 4. of a multipart ML/DL forecast post series on Australian flight patronage by route, pre-covid. Approaches used are:\n\nGluonTS\n\nDeepAR\nN-BEATS\n\n\nAll parts of series:\n1. Some pre analysis (basic EDA analysis is not covered as already included in previous posts)\n2. ‘Sequence’ style models - ARIMA etc\n3. ML style models - XGBoost etc including nesting and ensembling\n4. Deep learning models (GLuonTS etc)\n5. Summary of conclusions"
   },
   {
     "objectID": "posts/forecasting_with_deep_learning/index.html#load-data",

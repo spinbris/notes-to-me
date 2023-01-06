@@ -135,7 +135,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 <meta property="og:title" content="Notes to Myself - Flight Forecasting with Deep Learning - Incomplete">
-<meta property="og:description" content="This analysis is one section of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down.">
+<meta property="og:description" content="This post is in relation to the part 4. of a multipart ML/DL forecast post series on Australian flight patronage by route, pre-covid. Approaches used are:">
 <meta property="og:site-name" content="Notes to Myself">
 </head>
 
@@ -260,13 +260,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <section id="introduction" class="level2" data-number="1">
 <h2 data-number="1" class="anchored" data-anchor-id="introduction"><span class="header-section-number">1</span> Introduction</h2>
-<p>This analysis is one section of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:</p>
-<p>1. Some pre analysis (basic EDA analysis is not covered as already included in previous posts)</p>
-<p>2. ‘Sequence’ style models - ARIMA etc</p>
-<p>3. ML style models - XGBoost etc including nesting and ensembling</p>
-<p>4. Deep learning models (GLuonTS etc)</p>
-<p>5. Summary of conclusions</p>
-<p>This post is in relation to the part 4. Approaches used are:</p>
+<p>This post is in relation to the part 4. of a multipart ML/DL forecast post series on Australian flight patronage by route, pre-covid. Approaches used are:</p>
 <ul>
 <li><p>GluonTS</p>
 <ul>
@@ -274,6 +268,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><p>N-BEATS</p></li>
 </ul></li>
 </ul>
+<p>All parts of series:</p>
+<p>1. Some pre analysis (basic EDA analysis is not covered as already included in previous posts)</p>
+<p>2. ‘Sequence’ style models - ARIMA etc</p>
+<p>3. ML style models - XGBoost etc including nesting and ensembling</p>
+<p>4. Deep learning models (GLuonTS etc)</p>
+<p>5. Summary of conclusions</p>
 </section>
 <section id="load-libraries" class="level2" data-number="2">
 <h2 data-number="2" class="anchored" data-anchor-id="load-libraries"><span class="header-section-number">2</span> Load Libraries</h2>
@@ -1369,25 +1369,25 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a><span class="fu">## Introduction</span></span>
 <span id="cb30-29"><a href="#cb30-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a>This analysis is one section of a multi-part set of posts looking at forecasting on domestic Australian flight volumes by route in the period prior to when covid largely shut the industry down. Its intention is just to provide me with examples over the main models to save time on future projects.It is split into:</span>
+<span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a>This post is in relation to the part 4. of a multipart ML/DL forecast post series on Australian flight patronage by route, pre-covid. Approaches used are:</span>
 <span id="cb30-31"><a href="#cb30-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-32"><a href="#cb30-32" aria-hidden="true" tabindex="-1"></a>1<span class="sc">\.</span> Some pre analysis (basic EDA analysis is not covered as already included in previous posts)</span>
+<span id="cb30-32"><a href="#cb30-32" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>GluonTS</span>
 <span id="cb30-33"><a href="#cb30-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-34"><a href="#cb30-34" aria-hidden="true" tabindex="-1"></a>2<span class="sc">\.</span> 'Sequence' style models - ARIMA etc</span>
+<span id="cb30-34"><a href="#cb30-34" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>DeepAR</span>
 <span id="cb30-35"><a href="#cb30-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-36"><a href="#cb30-36" aria-hidden="true" tabindex="-1"></a>3<span class="sc">\.</span> ML style models - XGBoost etc including nesting and ensembling</span>
+<span id="cb30-36"><a href="#cb30-36" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>N-BEATS</span>
 <span id="cb30-37"><a href="#cb30-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-38"><a href="#cb30-38" aria-hidden="true" tabindex="-1"></a>4<span class="sc">\.</span> Deep learning models (GLuonTS etc)</span>
+<span id="cb30-38"><a href="#cb30-38" aria-hidden="true" tabindex="-1"></a>All parts of series:</span>
 <span id="cb30-39"><a href="#cb30-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-40"><a href="#cb30-40" aria-hidden="true" tabindex="-1"></a>5<span class="sc">\.</span> Summary of conclusions</span>
+<span id="cb30-40"><a href="#cb30-40" aria-hidden="true" tabindex="-1"></a>1<span class="sc">\.</span> Some pre analysis (basic EDA analysis is not covered as already included in previous posts)</span>
 <span id="cb30-41"><a href="#cb30-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-42"><a href="#cb30-42" aria-hidden="true" tabindex="-1"></a>This post is in relation to the part 4. Approaches used are:</span>
+<span id="cb30-42"><a href="#cb30-42" aria-hidden="true" tabindex="-1"></a>2<span class="sc">\.</span> 'Sequence' style models - ARIMA etc</span>
 <span id="cb30-43"><a href="#cb30-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-44"><a href="#cb30-44" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>GluonTS</span>
+<span id="cb30-44"><a href="#cb30-44" aria-hidden="true" tabindex="-1"></a>3<span class="sc">\.</span> ML style models - XGBoost etc including nesting and ensembling</span>
 <span id="cb30-45"><a href="#cb30-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-46"><a href="#cb30-46" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>DeepAR</span>
+<span id="cb30-46"><a href="#cb30-46" aria-hidden="true" tabindex="-1"></a>4<span class="sc">\.</span> Deep learning models (GLuonTS etc)</span>
 <span id="cb30-47"><a href="#cb30-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-48"><a href="#cb30-48" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>N-BEATS</span>
+<span id="cb30-48"><a href="#cb30-48" aria-hidden="true" tabindex="-1"></a>5<span class="sc">\.</span> Summary of conclusions</span>
 <span id="cb30-49"><a href="#cb30-49" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb30-50"><a href="#cb30-50" aria-hidden="true" tabindex="-1"></a><span class="fu">## Load Libraries</span></span>
 <span id="cb30-51"><a href="#cb30-51" aria-hidden="true" tabindex="-1"></a></span>
