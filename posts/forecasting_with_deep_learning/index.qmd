@@ -1,7 +1,7 @@
 ---
-title: "Flight Forecastin with Deep Learning"
+title: "Flight Forecasting with Deep Learning - Incomplete"
 author: "Stephen J Parton"
-date: "2022-10-25"
+date: "2022-12-27"
 categories: [code, analytics, flights, maps]
 website:
   sidebar:
@@ -21,8 +21,8 @@ execute:
   echo: true
   warning: false
   error: false
-freeze: false
-cache: false
+freeze: true
+cache: true
 ---
 
 ## Introduction
@@ -194,6 +194,9 @@ full_data_tbl <- full_data_tbl %>%
 data_prepared_tbl <- full_data_tbl %>%
   filter(!is.na(passenger_trips)) %>%
   drop_na()
+
+future_tbl <- full_data_tbl %>%
+  filter(is.na(passenger_trips))
 ```
 
 ## Split Data
@@ -290,8 +293,6 @@ recipe_spec_gluon <- recipe(
 
 recipe_spec_gluon %>% prep() %>% summary()
 ```
-
-### 
 
 ### DeepAR
 
@@ -484,11 +485,11 @@ model_spec_nbeats_6
 
 ## Modeltime Comparison
 
-The following code puts all models in the opne table, renames them and produces an accuracy report, sorted by 'MAAPE', best at top.
+The following code puts all models in the one table, renames them and produces an accuracy report, sorted by 'MAAPE', best at top. Unfortunately it does not want to render in quarto.
 
 ```{r,accuracy}
 
-
+#modeltime_calibrate()
 
 # Modeltime Comparison ----
 
@@ -511,17 +512,20 @@ model_tbl_submodels <- model_tbl_submodels %>%
   update_model_description(6,"N-BEATS - ens, 5ep,MASE") 
 
 
+# model_tbl_submodels_calibrate <- model_tbl_submodels %>% 
+#   modeltime_calibrate(new_data = testing(splits))
+
 # # Forecast Accuracy
 
-model_tbl_submodels %>%
-  modeltime_accuracy(
-    testing(splits),
-    metric_set = extended_forecast_accuracy_metric_set()) %>% 
-  arrange(maape) %>% 
-   gt::gt() %>% 
-    gt::fmt_number(
-     columns = 4:10,
-      decimals = 3)
+# model_tbl_submodels_calibrate %>%
+#   modeltime_accuracy(
+#     #testing(splits),
+#     metric_set = extended_forecast_accuracy_metric_set()) %>% 
+#   arrange(maape) %>% 
+#    gt::gt() %>% 
+#     gt::fmt_number(
+#      columns = 4:10,
+#       decimals = 3)
 
 ```
 
@@ -533,5 +537,142 @@ Models are then refit to full train/test data.
 
 submodels_refitted_tbl <- model_tbl_submodels %>% 
     modeltime_refit(data_prepared_tbl)
+
+submodels_refitted_tbl
+
+```
+
+## Make Predictions
+
+```{r, prediction_all}
+
+submodels_pred_ <- submodels_refitted_tbl %>% 
+  modeltime_forecast(
+  new_data = future_tbl,
+  actual_data = data_prepared_tbl,
+  keep_data = TRUE
+)
+
+head(submodels_pred_)
+
+```
+
+```{r, calibrate}
+
+
+
+
+```
+
+```{r, pred_graph,fig.width=10,fig.height=15}
+
+submodels_pred_ %>%
+  filter(route %in% topx) %>% 
+  group_by(route) %>%
+  ggplot(aes(x = .index, y = .value,colour = .model_desc))+
+  geom_line() +
+  scale_y_continuous(labels = comma) +
+  labs(x = "", y = "pax pm(000)") +
+  facet_wrap(~ route,  ncol=2, scales = "free") +
+  theme(legend.position = c(1,0)) +
+  theme(legend.text = element_text(size=5))
+  
+  
+  # plot_modeltime_forecast(
+  #   .trelliscope = F,
+  #   .facet_ncol = 2,
+  #   .title = "Predictions - Top10 Routes"
+  # )
+```
+
+The accuracy stats and graph suggest that some of these are not so good. ..
+
+## Ensemble Model
+
+Ensemble the top deep learning models:
+
+-   Model 6 - N-Beats ensuite
+
+-   Model 3 - DeepAR scaled, 10 epochs
+
+-   Model 2 - DeepAR unscaled 10 epochs
+
+There is no reason not to also include some ML models in the ensemble - we will do that in a separate post.
+
+```{r, ensemble}
+
+# Modeltime Comparison ----
+
+model_tbl_ensemble <- modeltime_table(
+  #wflw_fit_deepar_1,
+  wflw_fit_deepar_2,
+  wflw_fit_deepar_3,
+  #
+  #wflw_fit_nbeats_4,
+  #wflw_fit_nbeats_5,
+  wflw_fit_nbeats_6
+)
+
+model_tbl_ensemble <- model_tbl_ensemble %>% 
+  #update_model_description(1,"DEEPAR - unscaled, 5ep") %>% 
+  update_model_description(1,"DEEPAR - unscaled, 10ep") %>% 
+  update_model_description(2,"DEEPAR - scaled, 10ep") %>% 
+  #update_model_description(4,"N-BEATS - 5ep") %>% 
+  #update_model_description(5,"N-BEATS - 5ep,MASE") %>% 
+  update_model_description(3,"N-BEATS - ens, 5ep,MASE") 
+
+
+model_tbl_ensemble_wtd <- model_tbl_ensemble %>% 
+  ensemble_weighted(loadings = c(4,3,1)) %>% 
+  modeltime_table()
+
+
+# model_tbl_ensemble_calibrate <- model_tbl_ensemble %>% 
+#   modeltime_calibrate(new_data = testing(splits))
+# 
+# model_tbl_ensemble_calibrate %>% 
+#     modeltime_accuracy(
+#       #testing(splits),
+#       metric_set = extended_forecast_accuracy_metric_set()
+#       ) %>% 
+#     arrange(rmse) %>%
+#    gt::gt() %>% 
+#     gt::fmt_number(
+#      columns = 4:10,
+#       decimals = 3)
+
+```
+
+## Refit Ensemble to Full Train/Test Data Set and Graph
+
+```{r,refit_ensemble,fig.width=10,fig.height=15}
+
+model_tbl_ensemble_refit <- model_tbl_ensemble_wtd %>% 
+    modeltime_refit(data_prepared_tbl)
+
+model_tbl_ensemble_pred <- model_tbl_ensemble_refit %>% 
+  modeltime_forecast(
+    new_data = future_tbl,
+    actual_data = data_prepared_tbl,
+    keep_data = TRUE
+) %>% 
+    mutate(.value1 = expm1(.value))
+
+model_tbl_ensemble_pred %>%
+  filter(route %in% topx,
+         .index>lubridate::ymd("2015-01,01")) %>% 
+  group_by(route) %>%
+  ggplot(aes(x = .index, y = .value1/1000,colour = .model_desc))+
+  geom_line() +
+  scale_y_continuous(labels = comma) +
+  labs(x = "", y = "pax pm(000)") +
+  facet_wrap(~ route,  ncol=2, scales = "free") +
+  theme(legend.position = c(1,0)) +
+  theme(legend.text = element_text(size=5))
+    
+    # group_by(route) %>% 
+    # plot_modeltime_forecast(
+    #     .facet_ncol = 4
+    # )
 
 ```
