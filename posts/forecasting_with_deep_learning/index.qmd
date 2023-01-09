@@ -755,7 +755,7 @@ plotly::ggplotly(g)
 
 ## Aggregated Prediction - All routes
 
-```{r,graph, fig.width=10,fig.height=15}
+```{r,graph, fig.width=10,fig.height=8}
 g_data_acc <- g_data %>% 
   select(date,model_desc,pax_nos_000) %>% 
   group_by(date,model_desc) %>% 
@@ -780,8 +780,10 @@ g1 <- g_data_acc %>%
     labels = scales::label_comma()  
   )
 
-#plotly::ggplotly(g1)
 g1
+
+#plotly::ggplotly(g1)
+
 
 ```
 
