@@ -25,6 +25,8 @@ freeze: true
 cache: true
 ---
 
+![](thumbnail.png)
+
 ## Introduction
 
 This post is in relation to the part 4. of a multipart ML/DL forecast post series on Australian flight patronage by route, pre-covid. Approaches used are:
@@ -68,6 +70,8 @@ library(timetk)
 library(tictoc)
 library(future)
 library(doFuture)
+
+library(here)
 
 library(skimr)
 library(gt)
@@ -782,10 +786,50 @@ g1 <- g_data_acc %>%
 
 g1
 
-#plotly::ggplotly(g1)
+
 
 
 ```
 
 
-So not too bad in for predictions precovid, which is our focus.
+So not too bad for predictions precovid (ie before the cliff), which is our focus.
+
+```{r}
+#| echo: false
+
+feature_engineering_artifacts_list_gluon <- 
+list(
+    #data
+    data = list(
+        data_prepared_tbl = data_prepared_tbl,
+        future_tbl      = future_tbl
+        
+    ),
+    #recipes
+    recipes = list(
+        recipe_spec_gluon = recipe_spec_gluon
+    ),
+    #models/workflows
+    models = list(
+        wflw_fit_deepar_1    = wflw_fit_deepar_1,
+        wflw_fit_deepar_2    = wflw_fit_deepar_2,
+        wflw_fit_deepar_3    = wflw_fit_deepar_3,
+        wflw_fit_nbeats_4    = wflw_fit_nbeats_4,
+        wflw_fit_nbeats_5    = wflw_fit_nbeats_5,
+        wflw_fit_nbeats_6    = wflw_fit_nbeats_6,
+        model_tbl_ensemble   = model_tbl_ensemble
+        
+        
+    )
+   
+)
+
+# feature_engineering_artifacts_list_gluon
+
+# feature_engineering_artifacts_list_gluon %>% 
+#     write_rds(here("./posts/aust_domestic_flights/artifacts/feature_engineering_artifacts_list_gluon.rds"))
+
+
+
+```
+
